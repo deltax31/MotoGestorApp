@@ -180,15 +180,44 @@ export function MaintenancePage() {
     const handleSave = async (data: Partial<Maintenance>) => {
         if (!user) return;
         const moto = motos.find(m => m.id === data.motorcycle_id);
+        const cost = Number(data.cost) || 0;
+        const expenseDesc = `🔧 ${data.type || 'Mantenimiento'}${data.workshop ? ` — ${data.workshop}` : ''}`;
+
         if (editing) {
             const { error } = await insforge.database.from('maintenance').update({ ...data, updated_at: new Date().toISOString() }).eq('id', editing.id).select();
             if (error) { addToast('error', 'Error al actualizar'); return; }
+
+            // Sync expense: update or create
+            if (cost > 0) {
+                const { data: existingExp } = await insforge.database.from('expenses').select('id').eq('maintenance_id', editing.id).single();
+                if (existingExp) {
+                    await insforge.database.from('expenses').update({
+                        motorcycle_id: data.motorcycle_id, amount: cost, date: data.date,
+                        description: expenseDesc,
+                    }).eq('id', existingExp.id);
+                } else {
+                    await insforge.database.from('expenses').insert([{
+                        user_id: user.id, motorcycle_id: data.motorcycle_id, category: 'mantenimiento',
+                        amount: cost, date: data.date, description: expenseDesc, maintenance_id: editing.id,
+                    }]);
+                }
+            } else {
+                // Cost is 0 → remove linked expense if it exists
+                await insforge.database.from('expenses').delete().eq('maintenance_id', editing.id);
+            }
         } else {
-            const { error } = await insforge.database.from('maintenance').insert([{ ...data, user_id: user.id }]).select();
-            if (error) { addToast('error', 'Error al registrar'); return; }
+            const { data: inserted, error } = await insforge.database.from('maintenance').insert([{ ...data, user_id: user.id }]).select().single();
+            if (error || !inserted) { addToast('error', 'Error al registrar'); return; }
             // Update moto km
             if (moto && Number(data.km_at_service) > moto.current_km) {
                 await insforge.database.from('motorcycles').update({ current_km: data.km_at_service, updated_at: new Date().toISOString() }).eq('id', moto.id);
+            }
+            // Auto-create expense if cost > 0
+            if (cost > 0) {
+                await insforge.database.from('expenses').insert([{
+                    user_id: user.id, motorcycle_id: data.motorcycle_id, category: 'mantenimiento',
+                    amount: cost, date: data.date, description: expenseDesc, maintenance_id: inserted.id,
+                }]);
             }
         }
         addToast('success', editing ? 'Servicio actualizado' : 'Servicio registrado 🔧');

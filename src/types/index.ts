@@ -57,6 +57,7 @@ export interface Expense {
     amount: number;
     date: string;
     description: string | null;
+    maintenance_id: string | null;
     created_at: string;
 }
 

@@ -307,6 +307,7 @@ export function FinancesPage() {
                                     {filtered.map(e => {
                                         const cat = catMap[e.category];
                                         const moto = motoMap[e.motorcycle_id];
+                                        const isAutoMaint = !!e.maintenance_id;
                                         return (
                                             <tr key={e.id}>
                                                 <td style={{ fontWeight: 600 }}>{moto ? `${moto.brand} (${moto.plate})` : '—'}</td>
@@ -314,17 +315,26 @@ export function FinancesPage() {
                                                     <span className="badge" style={{ background: `${cat.color}20`, color: cat.color, border: `1px solid ${cat.color}40` }}>
                                                         {cat.icon} {cat.label}
                                                     </span>
+                                                    {isAutoMaint && (
+                                                        <span className="badge" style={{ marginLeft: '6px', background: 'var(--accent-alpha)', color: 'var(--accent)', border: '1px solid var(--accent)', fontSize: '11px' }}>
+                                                            🔧 Auto
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td style={{ fontWeight: 700, color: 'var(--warning)' }}>{formatCurrency(Number(e.amount))}</td>
                                                 <td style={{ color: 'var(--text-secondary)' }}>{formatDate(e.date)}</td>
                                                 <td style={{ color: 'var(--text-muted)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description || '—'}</td>
                                                 <td>
-                                                    <div style={{ display: 'flex', gap: '6px' }}>
-                                                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditing(e); setShowForm(true); }}>✏️</button>
-                                                        <button className="btn btn-danger btn-sm" disabled={deleting === e.id} onClick={() => handleDelete(e.id)}>
-                                                            {deleting === e.id ? <div className="spinner" style={{ width: '14px', height: '14px' }} /> : '🗑️'}
-                                                        </button>
-                                                    </div>
+                                                    {isAutoMaint ? (
+                                                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Desde mantenimiento</span>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                                            <button className="btn btn-ghost btn-sm" onClick={() => { setEditing(e); setShowForm(true); }}>✏️</button>
+                                                            <button className="btn btn-danger btn-sm" disabled={deleting === e.id} onClick={() => handleDelete(e.id)}>
+                                                                {deleting === e.id ? <div className="spinner" style={{ width: '14px', height: '14px' }} /> : '🗑️'}
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );

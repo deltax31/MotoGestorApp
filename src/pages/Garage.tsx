@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@insforge/react';
 import { insforge } from '../lib/insforge';
 import { Motorcycle, Profile } from '../types';
@@ -19,6 +19,8 @@ function MotoForm({ initial, onSave, onClose }: { initial?: Partial<Motorcycle>,
         tecno_expiry: initial?.tecno_expiry || '', tecno_certificate: initial?.tecno_certificate || '',
     });
     const [saving, setSaving] = useState(false);
+    const [scanning, setScanning] = useState(false);
+    const matriculaRef = useRef<HTMLInputElement>(null);
 
     const set = (k: string, v: string | number) => setForm(p => ({ ...p, [k]: v }));
 
@@ -48,6 +50,47 @@ function MotoForm({ initial, onSave, onClose }: { initial?: Partial<Motorcycle>,
                     <button className="btn btn-icon btn-ghost" onClick={onClose}>✕</button>
                 </div>
                 <form onSubmit={handleSubmit}>
+                    {/* AI Matrícula Scanner */}
+                    <div style={{ marginBottom: '16px', padding: '14px', background: 'var(--bg-secondary)', borderRadius: '10px', border: '1px dashed var(--border)' }}>
+                        <input ref={matriculaRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (ev) => {
+                            const file = ev.target.files?.[0];
+                            if (!file) return;
+                            setScanning(true);
+                            try {
+                                const reader = new FileReader();
+                                const base64 = await new Promise<string>(res => { reader.onload = () => res(reader.result as string); reader.readAsDataURL(file); });
+                                const response = await insforge.ai.chat.completions.create({
+                                    model: 'anthropic/claude-sonnet-4.5',
+                                    messages: [{
+                                        role: 'user',
+                                        content: [
+                                            { type: 'text', text: 'Analiza esta imagen de una tarjeta de propiedad / matr\u00edcula de un veh\u00edculo colombiano (motocicleta). Extrae la informaci\u00f3n y responde SOLO en JSON: {"brand": "marca (ej: Honda, Yamaha)", "model": "l\u00ednea/modelo (ej: CB 125F)", "year": n\u00famero, "plate": "placa en may\u00fasculas (ej: ABC12D)", "color": "color principal", "engine_cc": n\u00famero (cilindraje en cc)}' },
+                                            { type: 'image_url', image_url: { url: base64 } }
+                                        ]
+                                    }],
+                                    maxTokens: 300,
+                                });
+                                const text = response.choices[0].message.content;
+                                const jsonMatch = text.match(/\{[\s\S]*\}/);
+                                if (jsonMatch) {
+                                    const parsed = JSON.parse(jsonMatch[0]);
+                                    if (parsed.brand) set('brand', parsed.brand);
+                                    if (parsed.model) set('model', parsed.model);
+                                    if (parsed.year) set('year', String(parsed.year));
+                                    if (parsed.plate) set('plate', String(parsed.plate).toUpperCase());
+                                    if (parsed.color) set('color', parsed.color);
+                                    if (parsed.engine_cc) set('engine_cc', String(parsed.engine_cc));
+                                }
+                            } catch { /* ignore scan errors */ }
+                            setScanning(false);
+                            if (matriculaRef.current) matriculaRef.current.value = '';
+                        }} />
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => matriculaRef.current?.click()} disabled={scanning} style={{ width: '100%' }}>
+                            {scanning ? <><div className="spinner" style={{ width: '14px', height: '14px' }} />&nbsp;Analizando matrícula con IA...</> : '📷 Escanear matrícula con IA'}
+                        </button>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '6px' }}>Sube una foto de la tarjeta de propiedad y la IA llenará los campos</div>
+                    </div>
+
                     <div style={{ marginBottom: '20px' }}>
                         <div className="section-title">Datos del vehículo</div>
                         <div className="form-grid">
