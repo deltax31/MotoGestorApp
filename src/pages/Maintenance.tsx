@@ -229,6 +229,7 @@ export function MaintenancePage() {
         const { error } = await insforge.database.from('maintenance').delete().eq('id', id);
         if (error) addToast('error', 'Error al eliminar'); else addToast('success', 'Registro eliminado');
         setDeleting(null);
+        fetchData();
     };
 
     const filtered = filterMoto ? records.filter(r => r.motorcycle_id === filterMoto) : records;

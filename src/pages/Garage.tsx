@@ -215,7 +215,7 @@ export function Garage() {
             if (error) { addToast('error', 'Error al registrar la moto'); return; }
             addToast('success', 'Moto registrada exitosamente 🏍️');
         }
-        setShowForm(false); setEditing(null);
+        setShowForm(false); setEditing(null); fetchMotos();
     };
 
     const handleDelete = async (id: string) => {
@@ -223,6 +223,7 @@ export function Garage() {
         const { error } = await insforge.database.from('motorcycles').delete().eq('id', id);
         if (error) { addToast('error', 'Error al eliminar'); } else { addToast('success', 'Moto eliminada'); }
         setDeleting(null);
+        fetchMotos();
     };
 
     if (loading) return (

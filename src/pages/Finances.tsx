@@ -202,6 +202,7 @@ export function FinancesPage() {
         const { error } = await insforge.database.from('expenses').delete().eq('id', id);
         if (error) addToast('error', 'Error'); else addToast('success', 'Gasto eliminado');
         setDeleting(null);
+        fetchData();
     };
 
     const filtered = filterMoto ? expenses.filter(e => e.motorcycle_id === filterMoto) : expenses;

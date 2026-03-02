@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '@insforge/react';
 import { insforge } from '../lib/insforge';
 
@@ -12,43 +12,46 @@ export function useRealtime(callbacks: Partial<RealtimeEventMap>, userId?: strin
     const { isSignedIn } = useAuth();
     const connectedRef = useRef(false);
     const channelsRef = useRef<string[]>([]);
-
-    const connect = useCallback(async (uid: string) => {
-        if (connectedRef.current) return;
-        await insforge.realtime.connect();
-        connectedRef.current = true;
-
-        const channels: string[] = [];
-        if (callbacks.motorcycle) {
-            const ch = `motorcycles:${uid}`;
-            await insforge.realtime.subscribe(ch);
-            channels.push(ch);
-            insforge.realtime.on('INSERT_motorcycle', callbacks.motorcycle);
-            insforge.realtime.on('UPDATE_motorcycle', callbacks.motorcycle);
-            insforge.realtime.on('DELETE_motorcycle', callbacks.motorcycle);
-        }
-        if (callbacks.maintenance) {
-            const ch = `maintenance:${uid}`;
-            await insforge.realtime.subscribe(ch);
-            channels.push(ch);
-            insforge.realtime.on('INSERT_maintenance', callbacks.maintenance);
-            insforge.realtime.on('UPDATE_maintenance', callbacks.maintenance);
-            insforge.realtime.on('DELETE_maintenance', callbacks.maintenance);
-        }
-        if (callbacks.expense) {
-            const ch = `expenses:${uid}`;
-            await insforge.realtime.subscribe(ch);
-            channels.push(ch);
-            insforge.realtime.on('INSERT_expense', callbacks.expense);
-            insforge.realtime.on('UPDATE_expense', callbacks.expense);
-            insforge.realtime.on('DELETE_expense', callbacks.expense);
-        }
-        channelsRef.current = channels;
-    }, []);
+    const cbRef = useRef(callbacks);
+    cbRef.current = callbacks;
 
     useEffect(() => {
         if (!isSignedIn || !userId) return;
-        connect(userId);
+        if (connectedRef.current) return;
+
+        const setup = async () => {
+            await insforge.realtime.connect();
+            connectedRef.current = true;
+
+            const channels: string[] = [];
+            if (cbRef.current.motorcycle) {
+                const ch = `motorcycles:${userId}`;
+                await insforge.realtime.subscribe(ch);
+                channels.push(ch);
+                insforge.realtime.on('INSERT_motorcycle', () => cbRef.current.motorcycle?.());
+                insforge.realtime.on('UPDATE_motorcycle', () => cbRef.current.motorcycle?.());
+                insforge.realtime.on('DELETE_motorcycle', () => cbRef.current.motorcycle?.());
+            }
+            if (cbRef.current.maintenance) {
+                const ch = `maintenance:${userId}`;
+                await insforge.realtime.subscribe(ch);
+                channels.push(ch);
+                insforge.realtime.on('INSERT_maintenance', () => cbRef.current.maintenance?.());
+                insforge.realtime.on('UPDATE_maintenance', () => cbRef.current.maintenance?.());
+                insforge.realtime.on('DELETE_maintenance', () => cbRef.current.maintenance?.());
+            }
+            if (cbRef.current.expense) {
+                const ch = `expenses:${userId}`;
+                await insforge.realtime.subscribe(ch);
+                channels.push(ch);
+                insforge.realtime.on('INSERT_expense', () => cbRef.current.expense?.());
+                insforge.realtime.on('UPDATE_expense', () => cbRef.current.expense?.());
+                insforge.realtime.on('DELETE_expense', () => cbRef.current.expense?.());
+            }
+            channelsRef.current = channels;
+        };
+        setup();
+
         return () => {
             channelsRef.current.forEach(ch => insforge.realtime.unsubscribe(ch));
             insforge.realtime.disconnect();
