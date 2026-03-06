@@ -2,8 +2,9 @@ import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@insforge/react';
 import { useSearchParams } from 'react-router-dom';
 import { insforge } from '../lib/insforge';
-import { Maintenance, Motorcycle } from '../types';
+import { Maintenance, Motorcycle, ManualChunk } from '../types';
 import { formatCurrency, formatKm, formatDate } from '../lib/utils';
+import { searchManual } from '../lib/rag';
 import { useRealtime } from '../hooks/useRealtime';
 import { useToast } from '../context/ToastContext';
 import { AppLayout } from '../components/AppLayout';
@@ -21,6 +22,7 @@ const KM_INTERVALS: Record<string, number> = {
 };
 
 function MaintForm({ motos, initial, onSave, onClose }: { motos: Motorcycle[], initial?: Partial<Maintenance>, onSave: (d: Partial<Maintenance>) => Promise<void>, onClose: () => void }) {
+    const { user: currentUser } = useUser();
     const [form, setForm] = useState({
         motorcycle_id: initial?.motorcycle_id || motos[0]?.id || '',
         type: initial?.type || '', date: initial?.date || new Date().toISOString().split('T')[0],
@@ -30,6 +32,9 @@ function MaintForm({ motos, initial, onSave, onClose }: { motos: Motorcycle[], i
     const [saving, setSaving] = useState(false);
     const [scanningInvoice, setScanningInvoice] = useState(false);
     const invoiceRef = useRef<HTMLInputElement>(null);
+    const [guideChunks, setGuideChunks] = useState<ManualChunk[]>([]);
+    const [loadingGuide, setLoadingGuide] = useState(false);
+    const [showGuide, setShowGuide] = useState(false);
     const set = (k: string, v: string | number) => setForm(p => ({ ...p, [k]: v }));
 
     const handleTypeChange = (type: string) => {
@@ -139,6 +144,151 @@ function MaintForm({ motos, initial, onSave, onClose }: { motos: Motorcycle[], i
                             <textarea className="textarea" value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Observaciones..." />
                         </div>
                     </div>
+
+                    {/* Manual Guide — Premium */}
+                    {form.motorcycle_id && form.type && (
+                        <div style={{ marginBottom: '16px' }}>
+                            <button type="button" style={{
+                                width: '100%', padding: '12px 16px', borderRadius: '12px', cursor: loadingGuide ? 'wait' : 'pointer',
+                                background: showGuide
+                                    ? 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(59,130,246,0.1))'
+                                    : 'linear-gradient(135deg, rgba(124,58,237,0.08), rgba(59,130,246,0.05))',
+                                border: '1px solid rgba(124,58,237,0.2)',
+                                color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px',
+                                transition: 'all 0.2s',
+                            }}
+                                disabled={loadingGuide}
+                                onMouseEnter={e => { if (!loadingGuide) e.currentTarget.style.background = 'linear-gradient(135deg, rgba(124,58,237,0.18), rgba(59,130,246,0.12))'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = showGuide ? 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(59,130,246,0.1))' : 'linear-gradient(135deg, rgba(124,58,237,0.08), rgba(59,130,246,0.05))'; }}
+                                onClick={async () => {
+                                    if (showGuide) { setShowGuide(false); return; }
+                                    setLoadingGuide(true);
+                                    try {
+                                        const moto = motos.find(m => m.id === form.motorcycle_id);
+                                        const query = `Procedimiento detallado para ${form.type} en ${moto?.brand} ${moto?.model}: torques, niveles de fluido, herramientas, pasos`;
+                                        if (currentUser) {
+                                            const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000));
+                                            const chunks = await Promise.race([
+                                                searchManual(form.motorcycle_id, currentUser.id, query, 3),
+                                                timeoutPromise,
+                                            ]);
+                                            setGuideChunks(chunks);
+                                        }
+                                    } catch {
+                                        setGuideChunks([]);
+                                    }
+                                    setLoadingGuide(false);
+                                    setShowGuide(true);
+                                }}
+                            >
+                                <div style={{
+                                    width: '32px', height: '32px', borderRadius: '10px',
+                                    background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '15px', flexShrink: 0,
+                                    boxShadow: '0 2px 8px rgba(124,58,237,0.3)',
+                                }}>📖</div>
+                                <div style={{ flex: 1, textAlign: 'left' }}>
+                                    <div style={{ fontWeight: 600, fontSize: '13px' }}>
+                                        {loadingGuide ? 'Consultando el manual...' : showGuide ? 'Ocultar guía del manual' : 'Consultar guía del manual'}
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                        Información del manual oficial para "{form.type}"
+                                    </div>
+                                </div>
+                                {loadingGuide && <div className="spinner spinner-accent" style={{ width: '18px', height: '18px' }} />}
+                                {!loadingGuide && <span style={{ fontSize: '16px', transition: 'transform 0.2s', transform: showGuide ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>}
+                            </button>
+
+                            {showGuide && (
+                                <div style={{
+                                    marginTop: '8px', borderRadius: '14px', overflow: 'hidden',
+                                    border: '1px solid rgba(124,58,237,0.15)',
+                                    background: 'linear-gradient(180deg, rgba(124,58,237,0.04), transparent)',
+                                }}>
+                                    {guideChunks.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '24px 16px' }}>
+                                            <div style={{ fontSize: '32px', marginBottom: '8px' }}>📄</div>
+                                            <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>Sin manual disponible</div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                                                No se encontró un manual para <strong>{motos.find(m => m.id === form.motorcycle_id)?.brand} {motos.find(m => m.id === form.motorcycle_id)?.model}</strong>.<br />
+                                                Sube un PDF desde la vista de detalle de esta moto.
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ padding: '12px' }}>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '0 4px 8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <span style={{ color: 'var(--accent)' }}>✨</span>
+                                                {guideChunks.length} fragmento{guideChunks.length > 1 ? 's' : ''} relevante{guideChunks.length > 1 ? 's' : ''} encontrado{guideChunks.length > 1 ? 's' : ''}
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                {guideChunks.map((c) => {
+                                                    const catIcons: Record<string, { icon: string; color: string; bg: string }> = {
+                                                        engine: { icon: '⚙️', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+                                                        maintenance_schedule: { icon: '📋', color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+                                                        tires: { icon: '🛞', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
+                                                        fluids: { icon: '🛢️', color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
+                                                        electrical: { icon: '⚡', color: '#eab308', bg: 'rgba(234,179,8,0.1)' },
+                                                        general: { icon: '📄', color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
+                                                    };
+                                                    const cat = catIcons[c.category] || catIcons.general;
+                                                    const relevance = Math.round(c.similarity * 100);
+                                                    return (
+                                                        <div key={c.id} style={{
+                                                            borderRadius: '12px', overflow: 'hidden',
+                                                            background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                                                        }}>
+                                                            {/* Chunk header */}
+                                                            <div style={{
+                                                                padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px',
+                                                                borderBottom: '1px solid var(--border)',
+                                                                background: cat.bg,
+                                                            }}>
+                                                                <div style={{
+                                                                    width: '26px', height: '26px', borderRadius: '8px',
+                                                                    background: `${cat.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                    fontSize: '13px', border: `1px solid ${cat.color}30`,
+                                                                }}>{cat.icon}</div>
+                                                                <span style={{ fontSize: '12px', fontWeight: 700, color: cat.color, textTransform: 'capitalize' }}>
+                                                                    {c.category.replace('_', ' ')}
+                                                                </span>
+                                                                {c.km_threshold && (
+                                                                    <span style={{
+                                                                        fontSize: '11px', padding: '2px 8px', borderRadius: '6px',
+                                                                        background: 'rgba(59,130,246,0.1)', color: '#3b82f6',
+                                                                        border: '1px solid rgba(59,130,246,0.2)', fontWeight: 600,
+                                                                    }}>🛣️ {c.km_threshold.toLocaleString()} km</span>
+                                                                )}
+                                                                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                    <div style={{
+                                                                        width: '40px', height: '4px', borderRadius: '2px',
+                                                                        background: 'var(--bg-primary)', overflow: 'hidden',
+                                                                    }}>
+                                                                        <div style={{
+                                                                            width: `${relevance}%`, height: '100%', borderRadius: '2px',
+                                                                            background: relevance > 70 ? '#10b981' : relevance > 40 ? '#f59e0b' : '#ef4444',
+                                                                        }} />
+                                                                    </div>
+                                                                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>{relevance}%</span>
+                                                                </div>
+                                                            </div>
+                                                            {/* Chunk content */}
+                                                            <div style={{
+                                                                padding: '12px', fontSize: '13px', color: 'var(--text-secondary)',
+                                                                lineHeight: '1.6', whiteSpace: 'pre-wrap',
+                                                                maxHeight: '180px', overflowY: 'auto',
+                                                            }}>{c.content_chunk}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="modal-footer">
                         <button type="button" className="btn btn-ghost" onClick={onClose}>Cancelar</button>
                         <button type="submit" className="btn btn-primary" disabled={saving}>

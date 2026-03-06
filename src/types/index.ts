@@ -69,3 +69,21 @@ export interface ChatMessage {
     motorcycle_id: string | null;
     created_at: string;
 }
+
+export interface Manual {
+    id: string;
+    motorcycle_id: string;
+    user_id: string;
+    filename: string;
+    storage_key: string | null;
+    total_chunks: number;
+    created_at: string;
+}
+
+export interface ManualChunk {
+    id: string;
+    content_chunk: string;
+    category: string;
+    km_threshold: number | null;
+    similarity: number;
+}

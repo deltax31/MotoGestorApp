@@ -4,6 +4,8 @@ import { insforge } from '../lib/insforge';
 import { ChatMessage, Motorcycle } from '../types';
 import { AppLayout } from '../components/AppLayout';
 import { useToast } from '../context/ToastContext';
+import { searchManual } from '../lib/rag';
+import { matchSkills, buildSkillContext } from '../lib/skills';
 
 const SYSTEM_PROMPT = `Eres MotoBot, un experto mecánico colombiano especializado en motocicletas. 
 Tu misión es ayudar a los usuarios colombianos a mantener sus motos en óptimas condiciones.
@@ -75,11 +77,30 @@ export function AIPage() {
         setMessages(prev => [...prev, placeholder]);
 
         try {
+            // RAG: Search manual embeddings for relevant context
+            let ragContext = '';
+            if (motos.length > 0) {
+                const allChunks = [];
+                for (const moto of motos) {
+                    const chunks = await searchManual(moto.id, user.id, userMsg, 2);
+                    if (chunks.length > 0) {
+                        allChunks.push(`\n--- Manual de ${moto.brand} ${moto.model} ---\n${chunks.map(c => c.content_chunk).join('\n')}`);
+                    }
+                }
+                if (allChunks.length > 0) {
+                    ragContext = `\n\nINFORMACIÓN DEL MANUAL OFICIAL del usuario (úsala para dar respuestas precisas, cita las referencias cuando aplique):${allChunks.join('')}`;
+                }
+            }
+
+            // Skill routing: detect relevant skills and inject knowledge
+            const matchedSkills = matchSkills(userMsg);
+            const skillContext = buildSkillContext(matchedSkills);
+
             const allMessages = [...messages.slice(-20), userRecord];
             const stream = await insforge.ai.chat.completions.create({
                 model: 'anthropic/claude-sonnet-4.5',
                 messages: [
-                    { role: 'user', content: SYSTEM_PROMPT + contextInfo },
+                    { role: 'user', content: SYSTEM_PROMPT + skillContext + contextInfo + ragContext },
                     ...allMessages.slice(0, -1).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
                     chatImage
                         ? {

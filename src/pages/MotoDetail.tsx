@@ -2,10 +2,11 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '@insforge/react';
 import { insforge } from '../lib/insforge';
-import { Motorcycle } from '../types';
+import { Motorcycle, Manual } from '../types';
 import { getDocStatusBadge, formatKm, computeDocStatus } from '../lib/utils';
 import { useToast } from '../context/ToastContext';
 import { AppLayout } from '../components/AppLayout';
+import { ManualUpload } from '../components/ManualUpload';
 
 export function MotoDetail() {
     const { id } = useParams<{ id: string }>();
@@ -21,6 +22,7 @@ export function MotoDetail() {
     const [scanningDoc, setScanningDoc] = useState<'soat' | 'tecno' | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
     const docScanRef = useRef<'soat' | 'tecno'>('soat');
+    const [manual, setManual] = useState<Manual | null>(null);
 
     useEffect(() => {
         if (!user || !id) return;
@@ -28,6 +30,9 @@ export function MotoDetail() {
             const { data } = await insforge.database.from('motorcycles').select('*').eq('id', id).eq('user_id', user.id).single();
             if (data) { setMoto(data); setForm(data); }
             else { addToast('error', 'Moto no encontrada'); navigate('/garage'); }
+            // Fetch manual
+            const { data: m } = await insforge.database.from('manuals').select('*').eq('motorcycle_id', id).eq('user_id', user.id).order('created_at', { ascending: false }).limit(1);
+            if (m && m.length > 0) setManual(m[0]);
             setLoading(false);
         };
         load();
@@ -339,6 +344,14 @@ export function MotoDetail() {
                             )}
                         </div>
                     </div>
+                </div>
+
+                {/* Manual Upload */}
+                <div className="glass" style={{ padding: '20px', marginTop: '20px' }}>
+                    <ManualUpload motorcycleId={moto.id} existingManual={manual} onComplete={async () => {
+                        const { data: m } = await insforge.database.from('manuals').select('*').eq('motorcycle_id', moto.id).eq('user_id', user!.id).order('created_at', { ascending: false }).limit(1);
+                        if (m && m.length > 0) setManual(m[0]);
+                    }} />
                 </div>
 
                 {/* Quick actions */}
