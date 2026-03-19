@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@insforge/react';
-import { insforge } from '../lib/insforge';
 import { Expense, Motorcycle, ExpenseCategory } from '../types';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { useRealtime } from '../hooks/useRealtime';
 import { useToast } from '../context/ToastContext';
 import { AppLayout } from '../components/AppLayout';
+import { expenseService } from '../services/expenseService';
+import { motorcycleService } from '../services/motorcycleService';
+import { aiService } from '../services/aiService';
 
 const CATEGORIES: { key: ExpenseCategory; label: string; icon: string; color: string }[] = [
     { key: 'combustible', label: 'Combustible', icon: '⛽', color: '#f59e0b' },
@@ -91,26 +93,11 @@ function ExpenseForm({ motos, initial, onSave, onClose }: { motos: Motorcycle[],
                             try {
                                 const reader = new FileReader();
                                 const base64 = await new Promise<string>(res => { reader.onload = () => res(reader.result as string); reader.readAsDataURL(file); });
-                                const response = await insforge.ai.chat.completions.create({
-                                    model: 'anthropic/claude-sonnet-4.5',
-                                    messages: [{
-                                        role: 'user',
-                                        content: [
-                                            { type: 'text', text: 'Analiza esta imagen de una factura/recibo/ticket de pago relacionado con motocicletas en Colombia. Extrae la información y responde SOLO en JSON: {"category": "una de estas: combustible, mantenimiento, seguro, repuestos, multas, otros", "amount": número, "description": "descripción breve del gasto", "date": "YYYY-MM-DD o null"}' },
-                                            { type: 'image_url', image_url: { url: base64 } }
-                                        ]
-                                    }],
-                                    maxTokens: 300,
-                                });
-                                const text = response.choices[0].message.content;
-                                const jsonMatch = text.match(/\{[\s\S]*\}/);
-                                if (jsonMatch) {
-                                    const parsed = JSON.parse(jsonMatch[0]);
-                                    if (parsed.category) set('category', parsed.category);
-                                    if (parsed.amount) set('amount', String(parsed.amount));
-                                    if (parsed.description) set('description', parsed.description);
-                                    if (parsed.date) set('date', parsed.date);
-                                }
+                                const parsed = await aiService.scanInvoice(base64);
+                                if (parsed.category) set('category', parsed.category);
+                                if (parsed.amount) set('amount', String(parsed.amount));
+                                if (parsed.description) set('description', parsed.description);
+                                if (parsed.date) set('date', parsed.date);
                             } catch { /* ignore scan errors */ }
                             setScanningInvoice(false);
                             if (invoiceRef.current) invoiceRef.current.value = '';
@@ -172,12 +159,12 @@ export function FinancesPage() {
 
     const fetchData = async () => {
         if (!user) return;
-        const [{ data: m }, { data: e }] = await Promise.all([
-            insforge.database.from('motorcycles').select('*').eq('user_id', user.id),
-            insforge.database.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+        const [m, e] = await Promise.all([
+            motorcycleService.getAll(user.id),
+            expenseService.getAll(user.id),
         ]);
-        setMotos(m || []);
-        setExpenses(e || []);
+        setMotos(m);
+        setExpenses(e);
         setLoading(false);
     };
 
@@ -186,21 +173,27 @@ export function FinancesPage() {
 
     const handleSave = async (data: Partial<Expense>) => {
         if (!user) return;
-        if (editing) {
-            const { error } = await insforge.database.from('expenses').update(data).eq('id', editing.id).select();
-            if (error) { addToast('error', 'Error al actualizar'); return; }
-        } else {
-            const { error } = await insforge.database.from('expenses').insert([{ ...data, user_id: user.id }]).select();
-            if (error) { addToast('error', 'Error al registrar'); return; }
+        try {
+            if (editing) {
+                await expenseService.update(editing.id, data);
+            } else {
+                await expenseService.create(data, user.id);
+            }
+            addToast('success', editing ? 'Gasto actualizado' : 'Gasto registrado 💰');
+            setShowForm(false); setEditing(null); fetchData();
+        } catch {
+            addToast('error', editing ? 'Error al actualizar' : 'Error al registrar');
         }
-        addToast('success', editing ? 'Gasto actualizado' : 'Gasto registrado 💰');
-        setShowForm(false); setEditing(null); fetchData();
     };
 
     const handleDelete = async (id: string) => {
         setDeleting(id);
-        const { error } = await insforge.database.from('expenses').delete().eq('id', id);
-        if (error) addToast('error', 'Error'); else addToast('success', 'Gasto eliminado');
+        try {
+            await expenseService.delete(id);
+            addToast('success', 'Gasto eliminado');
+        } catch {
+            addToast('error', 'Error');
+        }
         setDeleting(null);
         fetchData();
     };

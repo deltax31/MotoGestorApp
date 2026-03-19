@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@insforge/react';
-import { insforge } from '../lib/insforge';
 import { Profile } from '../types';
 import { useToast } from '../context/ToastContext';
 import { AppLayout } from '../components/AppLayout';
+import { profileService } from '../services/profileService';
+import { motorcycleService } from '../services/motorcycleService';
 
 export function ProfilePage() {
     const { user } = useUser();
@@ -18,14 +19,14 @@ export function ProfilePage() {
     useEffect(() => {
         if (!user) return;
         (async () => {
-            const [{ data: p }, { data: m }] = await Promise.all([
-                insforge.database.from('profiles').select('*').eq('id', user.id).single(),
-                insforge.database.from('motorcycles').select('id').eq('user_id', user.id),
+            const [p, motos] = await Promise.all([
+                profileService.get(user.id),
+                motorcycleService.getAll(user.id),
             ]);
-            const profile = p || { id: user.id, name: user.email?.split('@')[0], phone: null, plan: 'free', created_at: '', updated_at: '' };
-            setProfile(profile);
-            setForm({ name: profile.name || '', phone: profile.phone || '' });
-            setMotoCount((m || []).length);
+            const prof = p || { id: user.id, name: user.email?.split('@')[0], phone: null, plan: 'free' as const, created_at: '', updated_at: '' };
+            setProfile(prof);
+            setForm({ name: prof.name || '', phone: prof.phone || '' });
+            setMotoCount(motos.length);
             setLoading(false);
         })();
     }, [user]);
@@ -33,23 +34,25 @@ export function ProfilePage() {
     const handleSaveProfile = async () => {
         if (!user) return;
         setSaving(true);
-        const { error } = await insforge.database.from('profiles').update({
-            name: form.name, phone: form.phone, updated_at: new Date().toISOString()
-        }).eq('id', user.id);
-        if (error) { addToast('error', 'Error al guardar'); } else {
+        try {
+            await profileService.update(user.id, { name: form.name, phone: form.phone });
             setProfile(p => p ? { ...p, ...form } : p);
             addToast('success', 'Perfil actualizado ✓');
             setEditing(false);
+        } catch {
+            addToast('error', 'Error al guardar');
         }
         setSaving(false);
     };
 
     const handleUpgradePlan = async (plan: 'free' | 'pro') => {
         if (!user) return;
-        const { error } = await insforge.database.from('profiles').update({ plan, updated_at: new Date().toISOString() }).eq('id', user.id);
-        if (error) { addToast('error', 'Error al cambiar plan'); } else {
+        try {
+            await profileService.updatePlan(user.id, plan);
             setProfile(p => p ? { ...p, plan } : p);
             addToast('success', plan === 'pro' ? '⭐ Plan Pro activado!' : '↩️ Cambiado a Plan Gratis');
+        } catch {
+            addToast('error', 'Error al cambiar plan');
         }
     };
 

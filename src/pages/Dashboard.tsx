@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@insforge/react';
-import { insforge } from '../lib/insforge';
 import { Motorcycle, Maintenance } from '../types';
 import { getDocStatusBadge, formatCurrency, formatKm } from '../lib/utils';
-import { getManualInsights } from '../lib/rag';
 import { useRealtime } from '../hooks/useRealtime';
 import { AppLayout } from '../components/AppLayout';
 import { useNavigate } from 'react-router-dom';
+import { motorcycleService } from '../services/motorcycleService';
+import { maintenanceService } from '../services/maintenanceService';
+import { expenseService } from '../services/expenseService';
+import { manualService } from '../services/manualService';
+import { aiService } from '../services/aiService';
 
 export function Dashboard() {
     const { user } = useUser();
@@ -20,15 +23,14 @@ export function Dashboard() {
 
     const fetchData = async () => {
         if (!user) return;
-        const [m, ma, ex] = await Promise.all([
-            insforge.database.from('motorcycles').select('*').eq('user_id', user.id),
-            insforge.database.from('maintenance').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(5),
-            insforge.database.from('expenses').select('amount').eq('user_id', user.id),
+        const [m, ma, totalExp] = await Promise.all([
+            motorcycleService.getAll(user.id),
+            maintenanceService.getRecent(user.id, 5),
+            expenseService.getTotalAmount(user.id),
         ]);
-        setMotos(m.data || []);
-        setMaint(ma.data || []);
-        const total = (ex.data || []).reduce((s: number, e: { amount: number }) => s + Number(e.amount), 0);
-        setTotalExpenses(total);
+        setMotos(m);
+        setMaint(ma);
+        setTotalExpenses(totalExp);
         setLoading(false);
     };
 
@@ -40,12 +42,12 @@ export function Dashboard() {
         if (!user || motos.length === 0) return;
         const loadInsights = async () => {
             setLoadingInsights(true);
-            const { data: manuals } = await insforge.database.from('manuals').select('motorcycle_id').eq('user_id', user.id);
-            if (!manuals || manuals.length === 0) { setLoadingInsights(false); return; }
-            const motoIds = new Set(manuals.map((m: { motorcycle_id: string }) => m.motorcycle_id));
+            const motoIds = await manualService.getUserManualMotorcycleIds(user.id);
+            if (motoIds.length === 0) { setLoadingInsights(false); return; }
+            const motoIdSet = new Set(motoIds);
             const results: Record<string, { alert: string; nextService: string; reference: string }> = {};
-            for (const moto of motos.filter(m => motoIds.has(m.id))) {
-                const insight = await getManualInsights(moto, user.id);
+            for (const moto of motos.filter(m => motoIdSet.has(m.id))) {
+                const insight = await aiService.getManualInsights(moto, user.id);
                 if (insight) results[moto.id] = insight;
             }
             setInsights(results);

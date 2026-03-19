@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@insforge/react';
-import { insforge } from '../lib/insforge';
 import { Motorcycle, Profile } from '../types';
 import { getDocStatusBadge, formatKm, computeDocStatus } from '../lib/utils';
 import { useRealtime } from '../hooks/useRealtime';
 import { useToast } from '../context/ToastContext';
 import { AppLayout } from '../components/AppLayout';
+import { motorcycleService } from '../services/motorcycleService';
+import { aiService } from '../services/aiService';
 import { useNavigate } from 'react-router-dom';
 
 const BRANDS = ['Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'AKT', 'Auteco', 'Royal Enfield', 'Hero', 'TVS', 'KTM', 'Otro'];
@@ -59,28 +60,13 @@ function MotoForm({ initial, onSave, onClose }: { initial?: Partial<Motorcycle>,
                             try {
                                 const reader = new FileReader();
                                 const base64 = await new Promise<string>(res => { reader.onload = () => res(reader.result as string); reader.readAsDataURL(file); });
-                                const response = await insforge.ai.chat.completions.create({
-                                    model: 'anthropic/claude-sonnet-4.5',
-                                    messages: [{
-                                        role: 'user',
-                                        content: [
-                                            { type: 'text', text: 'Analiza esta imagen de una tarjeta de propiedad / matr\u00edcula de un veh\u00edculo colombiano (motocicleta). Extrae la informaci\u00f3n y responde SOLO en JSON: {"brand": "marca (ej: Honda, Yamaha)", "model": "l\u00ednea/modelo (ej: CB 125F)", "year": n\u00famero, "plate": "placa en may\u00fasculas (ej: ABC12D)", "color": "color principal", "engine_cc": n\u00famero (cilindraje en cc)}' },
-                                            { type: 'image_url', image_url: { url: base64 } }
-                                        ]
-                                    }],
-                                    maxTokens: 300,
-                                });
-                                const text = response.choices[0].message.content;
-                                const jsonMatch = text.match(/\{[\s\S]*\}/);
-                                if (jsonMatch) {
-                                    const parsed = JSON.parse(jsonMatch[0]);
-                                    if (parsed.brand) set('brand', parsed.brand);
-                                    if (parsed.model) set('model', parsed.model);
-                                    if (parsed.year) set('year', String(parsed.year));
-                                    if (parsed.plate) set('plate', String(parsed.plate).toUpperCase());
-                                    if (parsed.color) set('color', parsed.color);
-                                    if (parsed.engine_cc) set('engine_cc', String(parsed.engine_cc));
-                                }
+                                const parsed = await aiService.scanRegistration(base64);
+                                if (parsed.brand) set('brand', parsed.brand);
+                                if (parsed.model) set('model', parsed.model);
+                                if (parsed.year) set('year', String(parsed.year));
+                                if (parsed.plate) set('plate', String(parsed.plate).toUpperCase());
+                                if (parsed.color) set('color', parsed.color);
+                                if (parsed.engine_cc) set('engine_cc', String(parsed.engine_cc));
                             } catch { /* ignore scan errors */ }
                             setScanning(false);
                             if (matriculaRef.current) matriculaRef.current.value = '';
@@ -186,12 +172,12 @@ export function Garage() {
 
     const fetchMotos = async () => {
         if (!user) return;
-        const [{ data: m }, { data: p }] = await Promise.all([
-            insforge.database.from('motorcycles').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-            insforge.database.from('profiles').select('*').eq('id', user.id).single(),
+        const [m, p] = await Promise.all([
+            motorcycleService.getAll(user.id),
+            motorcycleService.getProfile(user.id),
         ]);
-        setMotos(m || []);
-        setProfile(p || null);
+        setMotos(m);
+        setProfile(p);
         setLoading(false);
     };
 
@@ -202,26 +188,32 @@ export function Garage() {
 
     const handleSave = async (data: Partial<Motorcycle>) => {
         if (!user) return;
-        if (editing) {
-            const { error } = await insforge.database.from('motorcycles').update({ ...data, updated_at: new Date().toISOString() }).eq('id', editing.id).select();
-            if (error) { addToast('error', 'Error al actualizar'); return; }
-            addToast('success', 'Moto actualizada correctamente');
-        } else {
-            if (motos.length >= maxMotos) {
-                addToast('error', `Tu plan ${profile?.plan} solo permite ${maxMotos} moto(s). ¡Actualiza a Pro!`);
-                return;
+        try {
+            if (editing) {
+                await motorcycleService.update(editing.id, data);
+                addToast('success', 'Moto actualizada correctamente');
+            } else {
+                if (motos.length >= maxMotos) {
+                    addToast('error', `Tu plan ${profile?.plan} solo permite ${maxMotos} moto(s). ¡Actualiza a Pro!`);
+                    return;
+                }
+                await motorcycleService.create(data, user.id);
+                addToast('success', 'Moto registrada exitosamente 🏍️');
             }
-            const { error } = await insforge.database.from('motorcycles').insert([{ ...data, user_id: user.id }]).select();
-            if (error) { addToast('error', 'Error al registrar la moto'); return; }
-            addToast('success', 'Moto registrada exitosamente 🏍️');
+            setShowForm(false); setEditing(null); fetchMotos();
+        } catch {
+            addToast('error', editing ? 'Error al actualizar' : 'Error al registrar la moto');
         }
-        setShowForm(false); setEditing(null); fetchMotos();
     };
 
     const handleDelete = async (id: string) => {
         setDeleting(id);
-        const { error } = await insforge.database.from('motorcycles').delete().eq('id', id);
-        if (error) { addToast('error', 'Error al eliminar'); } else { addToast('success', 'Moto eliminada'); }
+        try {
+            await motorcycleService.delete(id);
+            addToast('success', 'Moto eliminada');
+        } catch {
+            addToast('error', 'Error al eliminar');
+        }
         setDeleting(null);
         fetchMotos();
     };
