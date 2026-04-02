@@ -2,6 +2,8 @@ import { insforge } from '../lib/insforge';
 import { Motorcycle, ChatMessage, ManualChunk } from '../types';
 import { searchManual, getManualInsights as ragGetManualInsights } from '../lib/rag';
 import { matchSkills, buildSkillContext } from '../lib/skills';
+import { getMotorcycleContext } from '../lib/catalog';
+import { queryKnowledgeBase, buildKnowledgeContext } from '../lib/knowledgeBase';
 
 const SYSTEM_PROMPT = `Eres MotoGestor IA, un asistente experto en motocicletas para el mercado colombiano.
 - Responde siempre en español
@@ -47,16 +49,27 @@ export const aiService = {
         const matchedSkills = matchSkills(userMsg);
         const skillContext = buildSkillContext(matchedSkills);
 
-        // Build motorcycle context info
-        const contextInfo = motos.length > 0
-            ? `\n\nMotos del usuario:\n${motos.map(m => `- ${m.brand} ${m.model} ${m.year} (${m.current_km} km, placa: ${m.plate})`).join('\n')}`
-            : '';
+        // Mini-RAG Knowledge Base (Rules & Dictionary)
+        const kbDocs = queryKnowledgeBase(userMsg);
+        const kbContext = buildKnowledgeContext(kbDocs);
+
+        // Build motorcycle context info and retrieve dynamic Obsidian Catalogs
+        let contextInfo = '';
+        if (motos.length > 0) {
+            contextInfo = `\n\nMotos del usuario:\n${motos.map(m => `- ${m.brand} ${m.model} ${m.year} (${m.current_km} km, placa: ${m.plate})`).join('\n')}`;
+            
+            // Try injecting catalog for the main/first motorcycle as context
+            const catalogMd = getMotorcycleContext(motos[0].brand, motos[0].model);
+            if (catalogMd) {
+                contextInfo += `\n\nFICHA TÉCNICA E INSIGHTS DE LA MOTO PRINCIPAL DEL USUARIO (Sacado directamente del catálogo interno. Usalo si la moto coincide para brindar datos ultra-precisos):\n${catalogMd}`;
+            }
+        }
 
         const allMessages = [...previousMessages.slice(-20)];
         const stream = await insforge.ai.chat.completions.create({
             model: 'anthropic/claude-sonnet-4.5',
             messages: [
-                { role: 'user', content: SYSTEM_PROMPT + skillContext + contextInfo + ragContext },
+                { role: 'user', content: SYSTEM_PROMPT + skillContext + kbContext + contextInfo + ragContext },
                 ...allMessages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
                 chatImage
                     ? {

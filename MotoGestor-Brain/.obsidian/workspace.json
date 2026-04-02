@@ -1,0 +1,207 @@
+{
+  "main": {
+    "id": "d4b2e51928761280",
+    "type": "split",
+    "children": [
+      {
+        "id": "334e0fc29859ffbd",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "97dad5f6b0bf2416",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "4. Catálogo de Motos (Contexto Específico)/victory-mrx-arizona-200.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "victory-mrx-arizona-200"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "8a87542442065817",
+    "type": "split",
+    "children": [
+      {
+        "id": "e5256dc730dbf855",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0aff1c06b82ae0ee",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de archivos"
+            }
+          },
+          {
+            "id": "3cc1222b97ef0b8a",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Buscar"
+            }
+          },
+          {
+            "id": "719160cf2c862b1a",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Marcadores"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "7257b063d467786a",
+    "type": "split",
+    "children": [
+      {
+        "id": "8ca851bd863b6a2c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "fe39041fc8fb4658",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Bienvenido.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Enlaces entrantes de Bienvenido"
+            }
+          },
+          {
+            "id": "e235bb8a0aa38cca",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Bienvenido.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Enlaces salientes de Bienvenido"
+            }
+          },
+          {
+            "id": "d2392000b36b9fe7",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiquetas"
+            }
+          },
+          {
+            "id": "852c6fb77837be64",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Todas las propiedades"
+            }
+          },
+          {
+            "id": "db607f4bd4df88f0",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Bienvenido.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Esquema de Bienvenido"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Abrir selector rápido": false,
+      "graph:Abrir vista gráfica": false,
+      "canvas:Crear nuevo lienzo": false,
+      "daily-notes:Abrir la nota de hoy": false,
+      "templates:Insertar plantilla": false,
+      "command-palette:Abrir paleta de comandos": false,
+      "bases:Crear nueva base": false
+    }
+  },
+  "active": "97dad5f6b0bf2416",
+  "lastOpenFiles": [
+    "3. Diccionario Mecánico (Nodos Interconectados)/sistema-cbs.md",
+    "2. Reglas de Negocio y Normativas (Colombia)/normativas-100-200cc.md",
+    "1. Skills (Agentes de IA)/marcas-populares-colombia.md",
+    "1. Skills (Agentes de IA)/interpretacion-manuales.md",
+    "1. Skills (Agentes de IA)/faq-soporte-app.md",
+    "1. Skills (Agentes de IA)/especificaciones-tecnicas.md",
+    "1. Skills (Agentes de IA)/diagnostico-por-sintomas.md",
+    "1. Skills (Agentes de IA)/engagement-gamificacion.md",
+    "1. Skills (Agentes de IA)/costos-precios-cop.md",
+    "1. Skills (Agentes de IA)/asistente-presupuesto.md",
+    "1. Skills (Agentes de IA)/analisis-facturas.md",
+    "1. Skills (Agentes de IA)/alertas-predictivas.md",
+    "5. Engagement y Gamificación/tips-doble-proposito.md",
+    "4. Catálogo de Motos (Contexto Específico)/victory-mrx-arizona-200.md",
+    "Bienvenido.md",
+    "5. Engagement y Gamificación",
+    "3. Diccionario Mecánico (Nodos Interconectados)",
+    "4. Catálogo de Motos (Contexto Específico)"
+  ]
+}

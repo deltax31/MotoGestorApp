@@ -10,6 +10,7 @@ import { maintenanceService } from '../services/maintenanceService';
 import { expenseService } from '../services/expenseService';
 import { manualService } from '../services/manualService';
 import { aiService } from '../services/aiService';
+import { getRandomTip, EngagementTip } from '../lib/engagement';
 
 export function Dashboard() {
     const { user } = useUser();
@@ -20,6 +21,7 @@ export function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [insights, setInsights] = useState<Record<string, { alert: string; nextService: string; reference: string }>>({});
     const [loadingInsights, setLoadingInsights] = useState(false);
+    const [dailyTip, setDailyTip] = useState<EngagementTip | null>(null);
 
     const fetchData = async () => {
         if (!user) return;
@@ -35,7 +37,10 @@ export function Dashboard() {
     };
 
     useRealtime({ motorcycle: fetchData, maintenance: fetchData, expense: fetchData }, user?.id);
-    useEffect(() => { fetchData(); }, [user]);
+    useEffect(() => { 
+        fetchData(); 
+        setDailyTip(getRandomTip());
+    }, [user]);
 
     // Fetch RAG insights for motos with manuals
     useEffect(() => {
@@ -106,6 +111,23 @@ export function Dashboard() {
                             </div>
                         </div>
                         <button className="btn btn-danger btn-sm" onClick={() => navigate('/garage')}>Ver garaje</button>
+                    </div>
+                )}
+
+                {/* Engagement Tip */}
+                {dailyTip && (
+                    <div className="glass" style={{
+                        padding: '16px 20px', marginBottom: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start',
+                        background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(124,58,237,0.05))',
+                        borderLeft: '4px solid var(--accent)'
+                    }}>
+                        <div style={{ fontSize: '24px', flexShrink: 0 }}>💡</div>
+                        <div>
+                            <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: '14px', color: 'var(--accent)' }}>MotoGestor Tip: {dailyTip.type}</div>
+                            <div style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                                {dailyTip.content}
+                            </div>
+                        </div>
                     </div>
                 )}
 
