@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { SignedIn, SignedOut, useAuth } from '@insforge/react';
 import { ToastProvider } from './context/ToastContext';
 import { Landing } from './pages/Landing';
+import { ResetPassword } from './pages/ResetPassword';
 import { Dashboard } from './pages/Dashboard';
 import { Garage } from './pages/Garage';
 import { MotoDetail } from './pages/MotoDetail';
@@ -32,6 +33,18 @@ export default function App() {
             <SignedOut><Landing /></SignedOut>
             <SignedIn><Navigate to="/dashboard" replace /></SignedIn>
           </>
+        } />
+        <Route path="/forgot-password" element={
+          <SignedOut><Landing initialMode="forgotpassword" /></SignedOut>
+        } />
+        <Route path="/sign-in" element={
+          <SignedOut><Landing initialMode="signin" /></SignedOut>
+        } />
+        <Route path="/reset-password" element={
+          <SignedOut><ResetPassword /></SignedOut>
+        } />
+        <Route path="/sign-up" element={
+          <SignedOut><Landing initialMode="signup" /></SignedOut>
         } />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/garage" element={<ProtectedRoute><Garage /></ProtectedRoute>} />

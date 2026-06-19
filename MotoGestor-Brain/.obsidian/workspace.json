@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "334e0fc29859ffbd",
+        "id": "fdb1966e3d0f5c56",
         "type": "tabs",
         "children": [
           {
-            "id": "97dad5f6b0bf2416",
+            "id": "2cda4fc83c6283d3",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -78,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 353.5
   },
   "right": {
     "id": "7257b063d467786a",
@@ -183,22 +183,34 @@
       "bases:Crear nueva base": false
     }
   },
-  "active": "97dad5f6b0bf2416",
+  "active": "2cda4fc83c6283d3",
   "lastOpenFiles": [
+    "5. Engagement y Gamificación/tips-doble-proposito.md",
+    "4. Catálogo de Motos (Contexto Específico)/victory-mrx-arizona-200.md",
     "3. Diccionario Mecánico (Nodos Interconectados)/sistema-cbs.md",
     "2. Reglas de Negocio y Normativas (Colombia)/normativas-100-200cc.md",
+    "1. Skills (Agentes de IA)/recoleccion-feedback.md",
+    "1. Skills (Agentes de IA)/planificador-viajes.md",
+    "1. Skills (Agentes de IA)/onboarding-inteligente.md",
+    "1. Skills (Agentes de IA)/motor-transmision.md",
+    "1. Skills (Agentes de IA)/normativa-tramites-colombia.md",
     "1. Skills (Agentes de IA)/marcas-populares-colombia.md",
+    "1. Skills (Agentes de IA)/mantenimiento-preventivo.md",
     "1. Skills (Agentes de IA)/interpretacion-manuales.md",
+    "1. Skills (Agentes de IA)/identificacion-visual-motos.md",
+    "1. Skills (Agentes de IA)/historial-depreciacion.md",
     "1. Skills (Agentes de IA)/faq-soporte-app.md",
     "1. Skills (Agentes de IA)/especificaciones-tecnicas.md",
-    "1. Skills (Agentes de IA)/diagnostico-por-sintomas.md",
     "1. Skills (Agentes de IA)/engagement-gamificacion.md",
+    "1. Skills (Agentes de IA)/diagnostico-por-sintomas.md",
     "1. Skills (Agentes de IA)/costos-precios-cop.md",
+    "1. Skills (Agentes de IA)/conduccion-terrenos-colombianos.md",
+    "1. Skills (Agentes de IA)/comparador-motos.md",
     "1. Skills (Agentes de IA)/asistente-presupuesto.md",
     "1. Skills (Agentes de IA)/analisis-facturas.md",
     "1. Skills (Agentes de IA)/alertas-predictivas.md",
-    "5. Engagement y Gamificación/tips-doble-proposito.md",
-    "4. Catálogo de Motos (Contexto Específico)/victory-mrx-arizona-200.md",
+    "Sin nombre",
+    "Sin título.base",
     "Bienvenido.md",
     "5. Engagement y Gamificación",
     "3. Diccionario Mecánico (Nodos Interconectados)",
