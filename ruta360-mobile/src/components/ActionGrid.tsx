@@ -35,7 +35,7 @@ export function ActionGrid({ activeMotorcycleId }: { activeMotorcycleId?: string
         </TouchableOpacity>
 
         {/* Mantenimientos */}
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/maintenance')}>
           <View style={styles.iconContainer}>
             <MaterialIcons name="history" size={24} color={Colores.primario} />
           </View>

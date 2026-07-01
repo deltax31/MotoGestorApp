@@ -38,6 +38,14 @@ export default function TabsLayout() {
         }} 
       />
       <Tabs.Screen 
+        name="finances" 
+        options={{ 
+          title: 'Finanzas',
+          headerShown: false,
+          tabBarIcon: ({ color }) => <FontAwesome name="credit-card" size={24} color={color} />
+        }} 
+      />
+      <Tabs.Screen 
         name="profile" 
         options={{ 
           title: 'Perfil',

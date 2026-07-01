@@ -167,7 +167,7 @@ export default function GarageDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>GESTIÓN</Text>
           <View style={{ gap: 8 }}>
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/maintenance')}>
               <View style={styles.actionCardLeft}>
                 <View style={styles.actionIconWrapper}>
                   <MaterialIcons name="history" size={20} color={Colores.primario} />
