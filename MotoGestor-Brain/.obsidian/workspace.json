@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "4. Catálogo de Motos (Contexto Específico)/victory-mrx-arizona-200.md",
+                "file": "6. Practicas react native/ruta360_buenas_practicas_react_native.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "victory-mrx-arizona-200"
+              "title": "ruta360_buenas_practicas_react_native"
             }
           }
         ]
@@ -185,8 +185,10 @@
   },
   "active": "2cda4fc83c6283d3",
   "lastOpenFiles": [
-    "5. Engagement y Gamificación/tips-doble-proposito.md",
     "4. Catálogo de Motos (Contexto Específico)/victory-mrx-arizona-200.md",
+    "6. Practicas react native/ruta360_buenas_practicas_react_native.md",
+    "6. Practicas react native",
+    "5. Engagement y Gamificación/tips-doble-proposito.md",
     "3. Diccionario Mecánico (Nodos Interconectados)/sistema-cbs.md",
     "2. Reglas de Negocio y Normativas (Colombia)/normativas-100-200cc.md",
     "1. Skills (Agentes de IA)/recoleccion-feedback.md",
@@ -209,7 +211,6 @@
     "1. Skills (Agentes de IA)/asistente-presupuesto.md",
     "1. Skills (Agentes de IA)/analisis-facturas.md",
     "1. Skills (Agentes de IA)/alertas-predictivas.md",
-    "Sin nombre",
     "Sin título.base",
     "Bienvenido.md",
     "5. Engagement y Gamificación",

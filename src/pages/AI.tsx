@@ -98,9 +98,9 @@ export function AIPage() {
 
             const allMessages = [...messages.slice(-20), userRecord];
             const stream = await insforge.ai.chat.completions.create({
-                model: 'anthropic/claude-sonnet-4.5',
+                model: 'gpt-4o',
                 messages: [
-                    { role: 'user', content: SYSTEM_PROMPT + skillContext + contextInfo + ragContext },
+                    { role: 'system', content: SYSTEM_PROMPT + skillContext + contextInfo + ragContext },
                     ...allMessages.slice(0, -1).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
                     chatImage
                         ? {
@@ -141,7 +141,7 @@ export function AIPage() {
             const reader = new FileReader();
             const base64 = await new Promise<string>(res => { reader.onload = () => res(reader.result as string); reader.readAsDataURL(scanImage); });
             const response = await insforge.ai.chat.completions.create({
-                model: 'anthropic/claude-sonnet-4.5',
+                model: 'gpt-4o',
                 messages: [{
                     role: 'user',
                     content: [
