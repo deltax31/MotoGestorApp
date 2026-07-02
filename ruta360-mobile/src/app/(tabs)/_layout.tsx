@@ -11,6 +11,8 @@ export default function TabsLayout() {
         tabBarStyle: { 
           backgroundColor: Colores.fondoAsfalto,
           borderTopColor: Colores.borde,
+          height: 60,
+          paddingBottom: 5,
         },
         tabBarActiveTintColor: Colores.acento,
         tabBarInactiveTintColor: Colores.textoSecundario,
@@ -20,6 +22,7 @@ export default function TabsLayout() {
         name="dashboard" 
         options={{ 
           title: 'Dashboard',
+          headerShown: false,
           tabBarIcon: ({ color }) => <FontAwesome name="home" size={24} color={color} />
         }} 
       />
@@ -27,6 +30,7 @@ export default function TabsLayout() {
         name="garage" 
         options={{ 
           title: 'Garaje',
+          headerShown: false,
           tabBarIcon: ({ color }) => <FontAwesome name="motorcycle" size={24} color={color} />
         }} 
       />
@@ -34,6 +38,7 @@ export default function TabsLayout() {
         name="ai" 
         options={{ 
           title: 'Asistente IA',
+          headerShown: false,
           tabBarIcon: ({ color }) => <FontAwesome name="magic" size={24} color={color} />
         }} 
       />

@@ -30,6 +30,7 @@ interface GarageState {
   error: string | null;
   fetchMotorcycles: (userId: string) => Promise<void>;
   addMotorcycle: (motorcycle: Partial<Motorcycle>) => Promise<{ data: any; error: any }>;
+  updateMotorcycle: (id: string, updates: Partial<Motorcycle>) => Promise<{ data: any; error: any }>;
   activeMotorcycleId: string | null;
   setActiveMotorcycle: (id: string) => void;
 }
@@ -86,6 +87,36 @@ export const useGarageStore = create<GarageState>((set, get) => ({
       set({ 
         motorcycles: [data, ...currentMotos], 
         activeMotorcycleId: get().activeMotorcycleId || data.id,
+        isLoading: false 
+      });
+      
+      return { data, error: null };
+    } catch (err: any) {
+      set({ isLoading: false });
+      return { data: null, error: err };
+    }
+  },
+
+  updateMotorcycle: async (id, updates) => {
+    set({ isLoading: true });
+    try {
+      const { data, error } = await insforge.database
+        .from('motorcycles')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        set({ isLoading: false });
+        return { data: null, error };
+      }
+
+      const currentMotos = get().motorcycles;
+      const updatedMotos = currentMotos.map(m => m.id === id ? data : m);
+      
+      set({ 
+        motorcycles: updatedMotos,
         isLoading: false 
       });
       

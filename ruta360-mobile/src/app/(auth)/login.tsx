@@ -75,7 +75,7 @@ export default function LoginScreen() {
         {/* Logo Section */}
         <View style={styles.logoContainer}>
           <Image 
-            source={{ uri: 'https://lh3.googleusercontent.com/aida/AP1WRLuy6rjQjMnp6Iw7aNkf7uh2dfycNgsFb6q_CIupSECcHs81F2_Q5AEW24xLTsPBLdlDx1KFHmiEKdi-Z-CGWxPjFuuHiqF7_NTnwPq9usyEwPw7llWk4nXNLgGfSpOKHNXm6IU4erYaPNavV5UCCBPTTnw-CfHLKTsOumm6X-u-YtEY_gpS9O_qQJl82cy21hR0rcKFQkowUTTdzXhXBhq975vmLZW7CTnR2jRBUhy9AAlu1f7u80G71Jo' }}
+            source={require('../../../assets/images/logo-ruta360.png')}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   logo: {
-    width: 128,
-    height: 128,
+    width: 200,
+    height: 80,
   },
   glassPanel: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',

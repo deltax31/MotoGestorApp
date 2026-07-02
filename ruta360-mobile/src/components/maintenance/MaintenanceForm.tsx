@@ -109,6 +109,15 @@ export default function MaintenanceForm({ initialData, isLoading, onSave, submit
         </View>
       ) : null}
 
+      {/* AI Scan Placeholder */}
+      <TouchableOpacity style={styles.aiScanCard}>
+        <View style={styles.aiScanIconBg}>
+          <MaterialIcons name="photo-camera" size={32} color={Colores.primario} />
+        </View>
+        <Text style={styles.aiScanTitle}>Escanear factura con IA</Text>
+        <Text style={styles.aiScanSub}>Sube una foto del recibo y la IA llenará los campos automáticamente</Text>
+      </TouchableOpacity>
+
       <View style={styles.section}>
         <View style={styles.col2}>
           <Text style={styles.label}>Moto *</Text>
@@ -286,6 +295,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  aiScanCard: {
+    borderWidth: 2,
+    borderColor: 'rgba(0, 200, 212, 0.3)',
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    padding: 24,
+    backgroundColor: 'rgba(0, 200, 212, 0.05)',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  aiScanIconBg: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(0, 200, 212, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  aiScanTitle: {
+    color: Colores.blanco,
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  aiScanSub: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    textAlign: 'center',
+    maxWidth: 240,
   },
   section: {
     marginBottom: 24,

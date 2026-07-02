@@ -361,20 +361,18 @@ const styles = StyleSheet.create({
   },
   itemAmountWrapper: {
     flex: 4,
+    justifyContent: 'center',
+  },
+  itemAmountInput: {
+    width: '100%',
+    height: 48,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 48,
-  },
-  itemAmountInput: {
-    flex: 1,
-    height: 48,
     color: Colores.blanco,
     paddingLeft: 12,
-    paddingRight: 32,
+    paddingRight: 36,
     fontSize: 14,
   },
   currencyBadge: {

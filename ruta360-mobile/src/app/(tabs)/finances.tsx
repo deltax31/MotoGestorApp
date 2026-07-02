@@ -297,7 +297,7 @@ export default function FinancesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colores.fondoAsfalto,
+    backgroundColor: Colores.fondoPrincipal,
   },
   header: {
     flexDirection: 'row',
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: Colores.fondoAsfalto,
+    backgroundColor: Colores.fondoPrincipal,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },

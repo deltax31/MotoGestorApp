@@ -46,7 +46,7 @@ export function ActionGrid({ activeMotorcycleId }: { activeMotorcycleId?: string
         </TouchableOpacity>
 
         {/* Finanzas */}
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/finances')}>
           <View style={styles.iconContainer}>
             <MaterialIcons name="account-balance-wallet" size={24} color={Colores.primario} />
           </View>

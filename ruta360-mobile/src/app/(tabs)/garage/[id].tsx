@@ -59,7 +59,7 @@ export default function GarageDetailScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detalles de Moto</Text>
         </View>
-        <TouchableOpacity style={styles.headerButton}>
+        <TouchableOpacity style={styles.headerButton} onPress={() => router.push(`/garage/edit?id=${id}`)}>
           <MaterialIcons name="edit" size={24} color={Colores.primario} />
         </TouchableOpacity>
       </View>
