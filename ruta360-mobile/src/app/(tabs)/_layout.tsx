@@ -19,7 +19,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen 
-        name="dashboard" 
+        name="inicio" 
         options={{ 
           title: 'Dashboard',
           headerShown: false,
@@ -27,7 +27,7 @@ export default function TabsLayout() {
         }} 
       />
       <Tabs.Screen 
-        name="garage" 
+        name="garaje" 
         options={{ 
           title: 'Garaje',
           headerShown: false,
@@ -35,7 +35,7 @@ export default function TabsLayout() {
         }} 
       />
       <Tabs.Screen 
-        name="ai" 
+        name="asistente" 
         options={{ 
           title: 'Asistente IA',
           headerShown: false,
@@ -43,7 +43,7 @@ export default function TabsLayout() {
         }} 
       />
       <Tabs.Screen 
-        name="finances" 
+        name="finanzas" 
         options={{ 
           title: 'Finanzas',
           headerShown: false,
@@ -51,7 +51,7 @@ export default function TabsLayout() {
         }} 
       />
       <Tabs.Screen 
-        name="profile" 
+        name="perfil" 
         options={{ 
           title: 'Perfil',
           tabBarIcon: ({ color }) => <FontAwesome name="user" size={24} color={color} />

@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useAuthStore } from '@/store/authStore';
+import { useAutenticacionStore } from '@/store/autenticacionStore';
 import { View, ActivityIndicator } from 'react-native';
 import { Colores } from '@/constants/colores';
 
 export default function RootLayout() {
-  const { session, isLoading, checkSession } = useAuthStore();
+  const { session, isLoading, checkSession } = useAutenticacionStore();
   const segments = useSegments();
   const router = useRouter();
 
@@ -16,15 +16,16 @@ export default function RootLayout() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
-    const isRoot = segments.length === 0 || segments[0] === '(index)' || segments[0] === 'index';
+    const authSegments = ['(auth)', 'login', 'register'];
+    const inAuthGroup = segments.length > 0 && authSegments.includes(segments[0] as string);
+    const isRoot = !segments.length || (segments[0] as string) === '(index)' || (segments[0] as string) === 'index';
     
     // Rutas que no requieren autenticación
     const isUnprotected = inAuthGroup || isRoot;
 
     if (session && isUnprotected) {
       // Si el usuario está logueado y está en auth o root, redirigir a tabs
-      router.replace('/(tabs)/dashboard');
+      router.replace('/(tabs)/inicio');
     } else if (!session && !isUnprotected) {
       // Si el usuario no está logueado e intenta ir a rutas protegidas, redirigir al landing
       router.replace('/');

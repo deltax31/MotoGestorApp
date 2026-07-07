@@ -4,12 +4,12 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colores } from '@/constants/colores';
 import { insforge } from '@/services/insforge/client';
-import { useAuthStore } from '@/store/authStore';
+import { useAutenticacionStore } from '@/store/autenticacionStore';
 import Svg, { Path } from 'react-native-svg';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { checkSession } = useAuthStore();
+  const { checkSession } = useAutenticacionStore();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -43,18 +43,13 @@ export default function RegisterScreen() {
       const { data, error } = await insforge.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            full_name: name,
-            plan: 'gratuito'
-          }
-        }
+        name: name,
       });
 
       if (error) {
         setErrorMsg(error.message);
-      } else if (data?.session || data?.user) {
-        if (data.session) {
+      } else if (data?.accessToken || data?.user) {
+        if (data.accessToken) {
           await checkSession();
         } else {
           // Force login attempt just in case (auto-login is assumed)
@@ -62,7 +57,7 @@ export default function RegisterScreen() {
             email,
             password,
           });
-          if (loginData?.session) {
+          if (loginData?.accessToken) {
             await checkSession();
           } else if (loginError) {
              setErrorMsg(loginError.message);
@@ -174,7 +169,7 @@ export default function RegisterScreen() {
                 />
                 <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
                   <MaterialIcons 
-                    name={showPassword ? "visibility_off" : "visibility"} 
+                    name={showPassword ? "visibility-off" : "visibility"} 
                     size={20} 
                     color={showPassword ? Colores.primario : "rgba(255, 255, 255, 0.4)"} 
                   />

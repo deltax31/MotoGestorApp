@@ -4,11 +4,11 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colores } from '@/constants/colores';
 import { insforge } from '@/services/insforge/client';
-import { useAuthStore } from '@/store/authStore';
+import { useAutenticacionStore } from '@/store/autenticacionStore';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { checkSession } = useAuthStore();
+  const { checkSession } = useAutenticacionStore();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +32,7 @@ export default function LoginScreen() {
 
       if (error) {
         setErrorMsg(error.message || 'Credenciales inválidas');
-      } else if (data?.session || data?.accessToken) {
+      } else if (data?.accessToken || (data as any)?.session) {
         // Update the Zustand global state
         await checkSession();
         // The _layout.tsx guard will automatically redirect to dashboard
