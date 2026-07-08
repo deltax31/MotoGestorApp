@@ -5,6 +5,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Colores } from '@/constants/colores';
 import { insforge } from '@/services/insforge/client';
 import { useAutenticacionStore } from '@/store/autenticacionStore';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -50,19 +54,42 @@ export default function LoginScreen() {
   const handleGoogleLogin = async () => {
     setErrorMsg('');
     try {
-      // In a real app we'd handle mobile deep linking. For Expo Web, this works out of the box.
-      const redirectUrl = Platform.OS === 'web' ? window.location.origin : 'exp://localhost:8081';
+      const redirectUrl = Platform.OS === 'web' ? window.location.origin : Linking.createURL('/');
       
       const { data, error } = await insforge.auth.signInWithOAuth('google', {
         redirectTo: redirectUrl,
+        skipBrowserRedirect: Platform.OS !== 'web',
         additionalParams: { prompt: 'select_account' },
       });
 
       if (error) {
+        console.error('OAuth Initialization Error:', error);
         setErrorMsg(error.message);
-      } else if (data?.url && Platform.OS === 'web') {
-        // Redirigir al usuario al flujo de Google
-        window.location.href = data.url;
+      } else if (data?.url) {
+        if (Platform.OS === 'web') {
+          window.location.href = data.url;
+        } else {
+          const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+          // If the auth was successful, checkSession() should ideally be triggered, 
+          // or a deep link listener should handle the returned session.
+          // For now, check if we got a success redirect.
+          if (result.type === 'success' && result.url) {
+            const parsedUrl = Linking.parse(result.url);
+            const code = parsedUrl.queryParams?.insforge_code;
+            
+            if (code && typeof code === 'string') {
+              // Passamos el codeVerifier devuelto por signInWithOAuth
+              const exchangeResult = await insforge.auth.exchangeOAuthCode(code, data.codeVerifier);
+              if (exchangeResult.error) {
+                console.error('OAuth Exchange Error:', exchangeResult.error);
+                setErrorMsg('Error de autenticación: ' + exchangeResult.error.message);
+                return;
+              }
+            }
+            
+            await checkSession();
+          }
+        }
       }
     } catch (err) {
       setErrorMsg('Error al iniciar sesión con Google.');

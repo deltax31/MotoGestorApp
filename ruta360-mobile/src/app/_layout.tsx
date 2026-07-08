@@ -23,13 +23,19 @@ export default function RootLayout() {
     // Rutas que no requieren autenticación
     const isUnprotected = inAuthGroup || isRoot;
 
-    if (session && isUnprotected) {
-      // Si el usuario está logueado y está en auth o root, redirigir a tabs
-      router.replace('/(tabs)/inicio');
-    } else if (!session && !isUnprotected) {
-      // Si el usuario no está logueado e intenta ir a rutas protegidas, redirigir al landing
-      router.replace('/');
-    }
+    // Defer the navigation to the next tick to ensure Root Layout is mounted
+    // This prevents the "Attempted to navigate before mounting the Root Layout component" error
+    const timer = setTimeout(() => {
+      if (session && isUnprotected) {
+        // Si el usuario está logueado y está en auth o root, redirigir a tabs
+        router.replace('/(tabs)/inicio');
+      } else if (!session && !isUnprotected) {
+        // Si el usuario no está logueado e intenta ir a rutas protegidas, redirigir al landing
+        router.replace('/');
+      }
+    }, 1);
+
+    return () => clearTimeout(timer);
   }, [session, isLoading, segments]);
 
   if (isLoading) {
