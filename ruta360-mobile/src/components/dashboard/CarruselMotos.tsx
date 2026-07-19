@@ -6,7 +6,8 @@ import { useRouter } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.9;
+const CARD_WIDTH = width * 0.92;
+const CARD_HEIGHT = CARD_WIDTH * (10/16); // Aspect ratio 16:10 for a taller card
 
 export interface CarruselMotosItem {
   id: string;
@@ -119,12 +120,12 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: (width - CARD_WIDTH) / 2,
     gap: 16,
   },
   cardContainer: {
     width: CARD_WIDTH,
-    height: CARD_WIDTH * (9/16), // Aspect ratio 16:9
+    height: CARD_HEIGHT,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colores } from '@/constants/colores';
 import { useVehiculoStore } from '@/store/vehiculoStore';
 
@@ -50,8 +51,22 @@ export default function FormularioMantenimiento({ initialData, isLoading, onSave
     km_at_service: initialData?.km_at_service?.toString() || '',
     workshop: initialData?.workshop || '',
     notes: initialData?.notes || '',
-    next_km: initialData?.next_km?.toString() || '',
+    next_km: initialData?.next_km?.toString() || ''
   });
+
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS !== 'ios') {
+      setShowDatePicker(false);
+    }
+    if (event.type === 'set' && selectedDate) {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      handleChange('date', formattedDate);
+    } else if (event.type === 'dismissed') {
+      setShowDatePicker(false);
+    }
+  };
 
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -127,10 +142,11 @@ export default function FormularioMantenimiento({ initialData, isLoading, onSave
               onValueChange={(val) => handleChange('motorcycle_id', val)}
               style={[styles.picker, Platform.OS === 'web' && { backgroundColor: 'transparent', outline: 'none' }]}
               dropdownIconColor={Colores.blanco}
+              mode="dropdown"
             >
-              <Picker.Item label="Selecciona una moto..." value="" color={Platform.OS === 'web' ? '#000000' : "rgba(255,255,255,0.5)"} />
+              <Picker.Item label="Selecciona una moto..." value="" color={Platform.OS === 'android' ? '#000000' : "rgba(255,255,255,0.5)"} />
               {motorcycles.map(moto => (
-                <Picker.Item key={moto.id} label={`${moto.brand} ${moto.model} (${moto.plate})`} value={moto.id} color={Platform.OS === 'web' ? '#000000' : Colores.blanco} />
+                <Picker.Item key={moto.id} label={`${moto.brand} ${moto.model} (${moto.plate})`} value={moto.id} color={Platform.OS === 'android' ? '#000000' : Colores.blanco} />
               ))}
             </Picker>
           </View>
@@ -151,10 +167,11 @@ export default function FormularioMantenimiento({ initialData, isLoading, onSave
                   onValueChange={(val) => handleServiceChange(index, 'type', val)}
                   style={[styles.picker, Platform.OS === 'web' && { backgroundColor: 'transparent', outline: 'none' }]}
                   dropdownIconColor={Colores.blanco}
+                  mode="dropdown"
                 >
-                  <Picker.Item label="Tipo..." value="" color={Platform.OS === 'web' ? '#000000' : "rgba(255,255,255,0.5)"} />
+                  <Picker.Item label="Tipo..." value="" color={Platform.OS === 'android' ? '#000000' : "rgba(255,255,255,0.5)"} />
                   {SERVICE_TYPES.map(type => (
-                    <Picker.Item key={type} label={type} value={type} color={Platform.OS === 'web' ? '#000000' : Colores.blanco} />
+                    <Picker.Item key={type} label={type} value={type} color={Platform.OS === 'android' ? '#000000' : Colores.blanco} />
                   ))}
                 </Picker>
               </View>
@@ -190,13 +207,25 @@ export default function FormularioMantenimiento({ initialData, isLoading, onSave
         <View style={styles.grid}>
           <View style={styles.col1}>
             <Text style={styles.label}>Fecha *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor="rgba(255, 255, 255, 0.2)"
-              value={formData.date}
-              onChangeText={(t) => handleChange('date', t)}
-            />
+            <TouchableOpacity onPress={() => setShowDatePicker(true)} activeOpacity={0.8}>
+              <View pointerEvents="none">
+                <TextInput
+                  style={styles.input}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="rgba(255, 255, 255, 0.2)"
+                  value={formData.date}
+                  editable={false}
+                />
+              </View>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={formData.date ? new Date(formData.date + 'T12:00:00Z') : new Date()}
+                mode="date"
+                display="default"
+                onChange={onDateChange}
+              />
+            )}
           </View>
           
           <View style={styles.col1}>
@@ -350,12 +379,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     overflow: 'hidden',
-    height: 48,
+    height: 55,
     justifyContent: 'center',
   },
   picker: {
     color: Colores.blanco,
-    height: 48,
+    height: 55,
     width: '100%',
   },
   inputWrapper: {

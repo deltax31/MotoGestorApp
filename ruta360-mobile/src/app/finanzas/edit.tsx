@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colores } from '@/constants/colores';
 import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useVehiculoStore } from '@/store/vehiculoStore';
 import { useFinanzasStore } from '@/store/finanzasStore';
 import { ItemGasto } from '@/types/finanzas.types';
@@ -28,6 +29,20 @@ export default function EditExpenseScreen() {
 
   const [motoId, setMotoId] = useState<string>('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0] || '');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS !== 'ios') {
+      setShowDatePicker(false);
+    }
+    if (event.type === 'set' && selectedDate) {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      setDate(formattedDate);
+    } else if (event.type === 'dismissed') {
+      setShowDatePicker(false);
+    }
+  };
+
   const [description, setDescription] = useState('');
   const [items, setItems] = useState<ItemGasto[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,10 +146,11 @@ export default function EditExpenseScreen() {
               onValueChange={setMotoId}
               style={[styles.picker, Platform.OS === 'web' && { backgroundColor: 'transparent', outline: 'none', color: '#000000' }]}
               dropdownIconColor={Colores.primario}
+              mode="dropdown"
             >
-              <Picker.Item label="Selecciona una moto..." value="" color={Platform.OS === 'web' ? '#000000' : 'rgba(255,255,255,0.5)'} />
+              <Picker.Item label="Selecciona una moto..." value="" color={Platform.OS === 'android' ? '#000000' : 'rgba(255,255,255,0.5)'} />
               {motorcycles.map(moto => (
-                <Picker.Item key={moto.id} label={`${moto.brand} ${moto.model} (${moto.plate})`} value={moto.id} color={Platform.OS === 'web' ? '#000000' : Colores.blanco} />
+                <Picker.Item key={moto.id} label={`${moto.brand} ${moto.model} (${moto.plate})`} value={moto.id} color={Platform.OS === 'android' ? '#000000' : Colores.blanco} />
               ))}
             </Picker>
           </View>
@@ -152,9 +168,10 @@ export default function EditExpenseScreen() {
                     onValueChange={(val) => updateItem(index, 'category', val)}
                     style={[styles.picker, Platform.OS === 'web' && { color: '#000000', backgroundColor: 'transparent', outline: 'none' }]}
                     dropdownIconColor={Colores.primario}
+                    mode="dropdown"
                   >
                     {CATEGORY_OPTIONS.map(opt => (
-                      <Picker.Item key={opt.value} label={opt.label} value={opt.value} color={Platform.OS === 'web' ? '#000000' : Colores.blanco} />
+                      <Picker.Item key={opt.value} label={opt.label} value={opt.value} color={Platform.OS === 'android' ? '#000000' : Colores.blanco} />
                     ))}
                   </Picker>
                 </View>
@@ -189,16 +206,26 @@ export default function EditExpenseScreen() {
         {/* Date */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>FECHA *</Text>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              value={date}
-              onChangeText={setDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor="rgba(255,255,255,0.3)"
+          <TouchableOpacity onPress={() => setShowDatePicker(true)} activeOpacity={0.8}>
+            <View style={styles.inputWrapper} pointerEvents="none">
+              <TextInput
+                style={styles.input}
+                value={date}
+                editable={false}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="rgba(255,255,255,0.3)"
+              />
+              <MaterialIcons name="calendar-today" size={20} color="rgba(255,255,255,0.3)" style={{ position: 'absolute', right: 16 }} />
+            </View>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={date ? new Date(date + 'T12:00:00Z') : new Date()}
+              mode="date"
+              display="default"
+              onChange={onDateChange}
             />
-            <MaterialIcons name="calendar-today" size={20} color="rgba(255,255,255,0.3)" style={{ position: 'absolute', right: 16 }} />
-          </View>
+          )}
         </View>
 
         {/* Total Cost Highlight */}
@@ -247,7 +274,7 @@ export default function EditExpenseScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colores.fondoAsfalto,
+    backgroundColor: Colores.fondoPrincipal,
   },
   header: {
     flexDirection: 'row',
@@ -255,7 +282,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: Colores.fondoAsfalto,
+    backgroundColor: Colores.fondoPrincipal,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
@@ -301,11 +328,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     justifyContent: 'center',
-    height: 48,
+    height: 55,
   },
   picker: {
     color: Colores.blanco,
-    height: 48,
+    height: 55,
     width: '100%',
   },
   itemRow: {
@@ -326,7 +353,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     justifyContent: 'center',
-    height: 48,
+    height: 55,
   },
   itemAmountWrapper: {
     flex: 4,
@@ -336,11 +363,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
+    height: 55,
   },
   itemAmountInput: {
     flex: 1,
-    height: 48,
+    height: 55,
     color: Colores.blanco,
     paddingLeft: 12,
     paddingRight: 32,

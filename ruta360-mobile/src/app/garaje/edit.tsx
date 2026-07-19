@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colores } from '@/constants/colores';
 import { useAutenticacionStore } from '@/store/autenticacionStore';
 import { useVehiculoStore, Motorcycle } from '@/store/vehiculoStore';
+import * as ImagePicker from 'expo-image-picker';
+import { insforge } from '@/services/insforge/client';
 
 export default function EditMotoScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { session } = useAutenticacionStore();
-  const { motorcycles, updateMotorcycle } = useVehiculoStore();
+  const { motorcycles, updateMotorcycle, deleteMotorcycle } = useVehiculoStore();
 
   const moto = motorcycles.find(m => m.id === id);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [formData, setFormData] = useState({
     brand: moto?.brand || '',
@@ -78,6 +81,145 @@ export default function EditMotoScreen() {
     }
   };
 
+  const executeDelete = async () => {
+    setIsLoading(true);
+    const { error } = await deleteMotorcycle(id as string);
+    setIsLoading(false);
+    if (error) {
+      console.error("Supabase delete error:", error);
+      if (Platform.OS === 'web') {
+        window.alert(error.message || 'No se pudo eliminar la motocicleta.');
+      } else {
+        Alert.alert("Error", error.message || 'No se pudo eliminar la motocicleta.');
+      }
+    } else {
+      router.back();
+    }
+  };
+
+  const handleDelete = () => {
+    if (Platform.OS === 'web') {
+      const confirmDelete = window.confirm("¿Estás seguro de que quieres eliminar esta motocicleta? Esta acción no se puede deshacer.");
+      if (confirmDelete) {
+        executeDelete();
+      }
+    } else {
+      Alert.alert(
+        "Eliminar Moto",
+        "¿Estás seguro de que quieres eliminar esta motocicleta? Esta acción no se puede deshacer.",
+        [
+          {
+            text: "Cancelar",
+            style: "cancel"
+          },
+          {
+            text: "Eliminar",
+            style: "destructive",
+            onPress: executeDelete
+          }
+        ]
+      );
+    }
+  };
+
+  const handleIAScan = async () => {
+    try {
+      let result;
+      if (Platform.OS === 'web') {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          base64: true,
+          quality: 0.5,
+        });
+      } else {
+        const choice = await new Promise<string>((resolve) => {
+          Alert.alert(
+            "Escanear matrícula",
+            "¿Desde dónde quieres cargar la imagen?",
+            [
+              { text: "Tomar Foto", onPress: () => resolve("camera") },
+              { text: "Galería", onPress: () => resolve("gallery") },
+              { text: "Cancelar", style: "cancel", onPress: () => resolve("cancel") }
+            ]
+          );
+        });
+
+        if (choice === "cancel") return;
+
+        if (choice === "camera") {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert("Permiso denegado", "Se requiere acceso a la cámara.");
+            return;
+          }
+          result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            base64: true,
+            quality: 0.5,
+          });
+        } else {
+          result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            base64: true,
+            quality: 0.5,
+          });
+        }
+      }
+
+      if (result && !result.canceled && result.assets && result.assets[0]?.base64) {
+        setIsScanning(true);
+        setErrorMsg('');
+
+        // Llamada a la IA usando el proxy
+        const response = await insforge.ai.chat.completions.create({
+          model: 'openai/gpt-4o-mini',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Extrae los siguientes datos de la matrícula/tarjeta de propiedad de esta moto en formato JSON estricto con las siguientes claves: brand (marca), model (modelo), year (año, texto numérico), plate (placa), color (color), engine_cc (cilindraje, texto numérico). Si no encuentras un dato, envíalo como null.' },
+                { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${result.assets[0]?.base64}` } }
+              ]
+            }
+          ]
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (content) {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const data = JSON.parse(jsonMatch[0]);
+            setFormData(prev => ({
+              ...prev,
+              brand: data.brand || prev.brand,
+              model: data.model || prev.model,
+              year: data.year ? String(data.year) : prev.year,
+              plate: data.plate || prev.plate,
+              color: data.color || prev.color,
+              engine_cc: data.engine_cc ? String(data.engine_cc) : prev.engine_cc,
+            }));
+            
+            if (Platform.OS === 'web') {
+              window.alert("Datos extraídos correctamente. Revisa que sean correctos antes de guardar.");
+            } else {
+              Alert.alert("Éxito", "Datos extraídos correctamente. Revisa que sean correctos antes de guardar.");
+            }
+          } else {
+            throw new Error("No se pudo leer el JSON devuelto por la IA.");
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error("Error AI scan:", error);
+      setErrorMsg("Error al procesar la imagen con IA: " + (error.message || ""));
+      if (Platform.OS !== 'web') {
+         Alert.alert("Error", "No se pudo extraer la información de la imagen.");
+      }
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -85,21 +227,39 @@ export default function EditMotoScreen() {
           <MaterialIcons name="edit" size={24} color={Colores.primario} />
           <Text style={styles.headerTitle}>Editar Moto</Text>
         </View>
-        <TouchableOpacity 
-          style={styles.closeButton}
-          onPress={() => router.back()}
-        >
-          <MaterialIcons name="close" size={24} color={Colores.blanco} />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.deleteButton]}
+            onPress={handleDelete}
+          >
+            <MaterialIcons name="delete" size={24} color="#ef4444" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => router.back()}
+          >
+            <MaterialIcons name="close" size={24} color={Colores.blanco} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}>
         
         {/* IA Scanner Banner */}
         <View style={styles.iaBanner}>
-          <TouchableOpacity style={styles.iaButton}>
-            <MaterialIcons name="photo-camera" size={20} color={Colores.primario} />
-            <Text style={styles.iaButtonText}>Escanear matrícula con IA</Text>
+          <TouchableOpacity 
+            style={styles.iaButton}
+            onPress={handleIAScan}
+            disabled={isScanning}
+          >
+            {isScanning ? (
+              <ActivityIndicator size="small" color={Colores.primario} />
+            ) : (
+              <MaterialIcons name="photo-camera" size={20} color={Colores.primario} />
+            )}
+            <Text style={styles.iaButtonText}>
+              {isScanning ? "Analizando imagen..." : "Escanear matrícula con IA"}
+            </Text>
           </TouchableOpacity>
           <Text style={styles.iaHelpText}>Sube una foto de la tarjeta de propiedad y la IA llenará los campos automáticamente.</Text>
         </View>
@@ -300,13 +460,21 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  closeButton: {
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  actionButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  deleteButton: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
   },
   scrollContent: {
     padding: 24,

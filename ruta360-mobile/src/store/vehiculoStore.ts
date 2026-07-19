@@ -11,6 +11,7 @@ interface GarageState {
   fetchMotorcycles: (userId: string) => Promise<void>;
   addMotorcycle: (motorcycle: any) => Promise<{ data: any; error: any }>;
   updateMotorcycle: (id: string, updates: any) => Promise<{ data: any; error: any }>;
+  deleteMotorcycle: (id: string) => Promise<{ error: any }>;
   activeMotorcycleId: string | null;
   setActiveMotorcycle: (id: string) => void;
 }
@@ -79,6 +80,32 @@ export const useVehiculoStore = create<GarageState>((set, get) => ({
     } catch (err: any) {
       set({ isLoading: false });
       return { data: null, error: err };
+    }
+  },
+
+  deleteMotorcycle: async (id: string) => {
+    set({ isLoading: true });
+    try {
+      await vehiculosService.eliminar(id);
+
+      const currentMotos = get().motorcycles || [];
+      const updatedMotos = currentMotos.filter((m: Vehiculo) => m.id !== id);
+      
+      const currentActiveId = get().activeMotorcycleId;
+      const newActiveId = currentActiveId === id 
+        ? (updatedMotos.length > 0 ? updatedMotos[0].id : null) 
+        : currentActiveId;
+
+      set({ 
+        motorcycles: updatedMotos,
+        activeMotorcycleId: newActiveId,
+        isLoading: false 
+      });
+      
+      return { error: null };
+    } catch (err: any) {
+      set({ isLoading: false });
+      return { error: err };
     }
   },
 }));

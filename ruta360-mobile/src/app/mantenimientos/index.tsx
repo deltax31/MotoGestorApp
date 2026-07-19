@@ -86,10 +86,11 @@ export default function MaintenanceListScreen() {
                     }}
                     style={[styles.picker, Platform.OS === 'web' && { backgroundColor: 'transparent', outline: 'none' }]}
                     dropdownIconColor={Colores.primario}
+                    mode="dropdown"
                   >
-                    <Picker.Item label="Selecciona una moto..." value="" color={Platform.OS === 'web' ? '#000000' : "rgba(255,255,255,0.5)"} />
+                    <Picker.Item label="Selecciona una moto..." value="" color={Platform.OS === 'android' ? '#000000' : "rgba(255,255,255,0.5)"} />
                     {motorcycles.map(moto => (
-                      <Picker.Item key={moto.id} label={`${moto.brand} ${moto.model} (${moto.plate})`} value={moto.id} color={Platform.OS === 'web' ? '#000000' : Colores.blanco} />
+                      <Picker.Item key={moto.id} label={`${moto.brand} ${moto.model} (${moto.plate})`} value={moto.id} color={Platform.OS === 'android' ? '#000000' : Colores.blanco} />
                     ))}
                   </Picker>
                 </View>
@@ -308,13 +309,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   pickerInner: {
-    height: 40,
+    height: 55,
     justifyContent: 'center',
     marginLeft: -8, // compensate for picker default padding
   },
   picker: {
     color: Colores.blanco,
-    height: 40,
+    height: 55,
     width: '100%',
     fontWeight: 'bold',
   },

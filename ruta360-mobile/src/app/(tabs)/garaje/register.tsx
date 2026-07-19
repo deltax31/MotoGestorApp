@@ -6,6 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colores } from '@/constants/colores';
 import { useAutenticacionStore } from '@/store/autenticacionStore';
 import { useVehiculoStore } from '@/store/vehiculoStore';
+import * as ImagePicker from 'expo-image-picker';
+import { insforge } from '@/services/insforge/client';
+import { Platform } from 'react-native';
 
 export default function RegisterMotoScreen() {
   const router = useRouter();
@@ -14,6 +17,7 @@ export default function RegisterMotoScreen() {
   const { addMotorcycle, motorcycles } = useVehiculoStore();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [formData, setFormData] = useState({
     brand: '',
@@ -88,6 +92,104 @@ export default function RegisterMotoScreen() {
     }
   };
 
+  const handleIAScan = async () => {
+    try {
+      let result;
+      if (Platform.OS === 'web') {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          base64: true,
+          quality: 0.5,
+        });
+      } else {
+        const choice = await new Promise<string>((resolve) => {
+          Alert.alert(
+            "Escanear matrícula",
+            "¿Desde dónde quieres cargar la imagen?",
+            [
+              { text: "Tomar Foto", onPress: () => resolve("camera") },
+              { text: "Galería", onPress: () => resolve("gallery") },
+              { text: "Cancelar", style: "cancel", onPress: () => resolve("cancel") }
+            ]
+          );
+        });
+
+        if (choice === "cancel") return;
+
+        if (choice === "camera") {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert("Permiso denegado", "Se requiere acceso a la cámara.");
+            return;
+          }
+          result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            base64: true,
+            quality: 0.5,
+          });
+        } else {
+          result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            base64: true,
+            quality: 0.5,
+          });
+        }
+      }
+
+      if (result && !result.canceled && result.assets && result.assets[0]?.base64) {
+        setIsScanning(true);
+        setErrorMsg('');
+
+        // Llamada a la IA usando el proxy
+        const response = await insforge.ai.chat.completions.create({
+          model: 'openai/gpt-4o-mini',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Extrae los siguientes datos de la matrícula/tarjeta de propiedad de esta moto en formato JSON estricto con las siguientes claves: brand (marca), model (modelo), year (año, texto numérico), plate (placa), color (color), engine_cc (cilindraje, texto numérico). Si no encuentras un dato, envíalo como null.' },
+                { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${result.assets[0]?.base64}` } }
+              ]
+            }
+          ]
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (content) {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const data = JSON.parse(jsonMatch[0]);
+            setFormData(prev => ({
+              ...prev,
+              brand: data.brand || prev.brand,
+              model: data.model || prev.model,
+              year: data.year ? String(data.year) : prev.year,
+              plate: data.plate || prev.plate,
+              color: data.color || prev.color,
+              engine_cc: data.engine_cc ? String(data.engine_cc) : prev.engine_cc,
+            }));
+            
+            if (Platform.OS === 'web') {
+              window.alert("Datos extraídos correctamente. Revisa que sean correctos antes de guardar.");
+            } else {
+              Alert.alert("Éxito", "Datos extraídos correctamente. Revisa que sean correctos antes de guardar.");
+            }
+          } else {
+            throw new Error("No se pudo leer el JSON devuelto por la IA.");
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error("Error AI scan:", error);
+      setErrorMsg("Error al procesar la imagen con IA: " + (error.message || ""));
+      if (Platform.OS !== 'web') {
+         Alert.alert("Error", "No se pudo extraer la información de la imagen.");
+      }
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -107,9 +209,19 @@ export default function RegisterMotoScreen() {
         
         {/* IA Scanner Banner */}
         <View style={styles.iaBanner}>
-          <TouchableOpacity style={styles.iaButton}>
-            <MaterialIcons name="photo-camera" size={20} color={Colores.primario} />
-            <Text style={styles.iaButtonText}>Escanear matrícula con IA</Text>
+          <TouchableOpacity 
+            style={styles.iaButton}
+            onPress={handleIAScan}
+            disabled={isScanning}
+          >
+            {isScanning ? (
+              <ActivityIndicator size="small" color={Colores.primario} />
+            ) : (
+              <MaterialIcons name="photo-camera" size={20} color={Colores.primario} />
+            )}
+            <Text style={styles.iaButtonText}>
+              {isScanning ? "Analizando imagen..." : "Escanear matrícula con IA"}
+            </Text>
           </TouchableOpacity>
           <Text style={styles.iaHelpText}>Sube una foto de la tarjeta de propiedad y la IA llenará los campos automáticamente.</Text>
         </View>

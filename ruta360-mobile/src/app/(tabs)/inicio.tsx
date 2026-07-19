@@ -61,6 +61,34 @@ export default function DashboardScreen() {
   const plan = profile?.plan || 'free';
   const canAddMoto = (plan === 'free' && motorcycles.length < 1) || (plan === 'pro' && motorcycles.length < 3);
 
+  const getStatus = (expiryDate?: string) => {
+    if (!expiryDate || expiryDate === 'Sin registrar') {
+      return { text: 'Sin registrar', status: 'VENCIDO', color: Colores.acento, progress: 0.1 };
+    }
+    const expiry = new Date(expiryDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (isNaN(expiry.getTime())) {
+      return { text: expiryDate, status: 'VENCIDO', color: Colores.acento, progress: 0.1 };
+    }
+    
+    if (expiry < today) {
+      return { text: expiryDate, status: 'VENCIDO', color: Colores.acento, progress: 0.4 };
+    }
+    
+    const diffTime = Math.abs(expiry.getTime() - today.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 30) {
+      return { text: expiryDate, status: 'PREVENTIVO', color: '#eab308', progress: 0.7 }; // Yellow/Amber for warning
+    }
+    return { text: expiryDate, status: 'AL DÍA', color: Colores.primario, progress: 1 };
+  };
+
+  const soatData = getStatus(activeMoto?.soat_expiry);
+  const tecnoData = getStatus(activeMoto?.tecno_expiry);
+
   return (
     <View style={styles.container}>
       <Encabezado />
@@ -68,8 +96,8 @@ export default function DashboardScreen() {
         contentContainerStyle={[
           styles.scrollContent, 
           { 
-            paddingTop: insets.top + 70, // Espacio para el header absolute
-            paddingBottom: insets.bottom + 100 
+            paddingTop: 20,
+            paddingBottom: insets.bottom + 20 
           }
         ]}
       >
@@ -85,21 +113,21 @@ export default function DashboardScreen() {
           <View style={styles.col}>
             <TarjetaEstado 
               title="SOAT" 
-              date={activeMoto?.soat_expiry || 'Sin registrar'}
-              status={activeMoto?.soat_status === 'vigente' ? 'AL DÍA' : activeMoto?.soat_status === 'proximo_vencer' ? 'PREVENTIVO' : 'VENCIDO'}
+              date={soatData.text}
+              status={soatData.status}
               icon="description"
-              color={activeMoto?.soat_status === 'vigente' ? Colores.primario : Colores.acento}
-              progress={activeMoto?.soat_status === 'vigente' ? 1 : 0.4}
+              color={soatData.color}
+              progress={soatData.progress}
             />
           </View>
           <View style={styles.col}>
             <TarjetaEstado 
               title="Tecno" 
-              date={activeMoto?.tecno_expiry || 'Sin registrar'}
-              status={activeMoto?.tecno_status === 'vigente' ? 'AL DÍA' : activeMoto?.tecno_status === 'proximo_vencer' ? 'PREVENTIVO' : 'VENCIDO'}
+              date={tecnoData.text}
+              status={tecnoData.status}
               icon="build-circle"
-              color={activeMoto?.tecno_status === 'vigente' ? Colores.primario : Colores.acento}
-              progress={activeMoto?.tecno_status === 'vigente' ? 1 : 0.4}
+              color={tecnoData.color}
+              progress={tecnoData.progress}
             />
           </View>
         </View>
