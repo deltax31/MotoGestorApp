@@ -7,7 +7,11 @@ import { Colores } from '@/constants/colores';
 import { useAutenticacionStore } from '@/store/autenticacionStore';
 import { useVehiculoStore, Motorcycle } from '@/store/vehiculoStore';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as DocumentPicker from 'expo-document-picker';
 import { insforge } from '@/services/insforge/client';
+import { supabaseUrl } from '@/services/insforge/client';
+import { ImagePickerSelector } from '@/components/vehiculo/ImagePickerSelector';
 
 export default function EditMotoScreen() {
   const router = useRouter();
@@ -20,7 +24,26 @@ export default function EditMotoScreen() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [isUploadingManual, setIsUploadingManual] = useState(false);
+  const [hasGlobalManual, setHasGlobalManual] = useState<boolean | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  const [showSoatPicker, setShowSoatPicker] = useState(false);
+  const [showTecnoPicker, setShowTecnoPicker] = useState(false);
+  
+  const [displayImageUri, setDisplayImageUri] = useState<string | null>(moto?.image_url || null);
+  const [localImageUri, setLocalImageUri] = useState<string | null | undefined>(undefined);
+
+  const handleImageSelected = (uri: string) => {
+    setDisplayImageUri(uri);
+    setLocalImageUri(uri);
+  };
+
+  const handleImageRemoved = () => {
+    setDisplayImageUri(null);
+    setLocalImageUri(null);
+  };
+
   const [formData, setFormData] = useState({
     brand: moto?.brand || '',
     model: moto?.model || '',
@@ -36,9 +59,96 @@ export default function EditMotoScreen() {
   });
 
 
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setErrorMsg('');
+  const handleChange = (key: keyof typeof formData, value: string) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSoatDateChange = (event: any, selectedDate?: Date) => {
+    setShowSoatPicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      handleChange('soat_expiry', formattedDate);
+    }
+  };
+
+  const handleTecnoDateChange = (event: any, selectedDate?: Date) => {
+    setShowTecnoPicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      handleChange('tecno_expiry', formattedDate);
+    }
+  };  
+
+  React.useEffect(() => {
+    if (moto?.brand && moto?.model) {
+      insforge.database.rpc('check_global_manual_exists', {
+        check_brand: moto.brand,
+        check_model: moto.model
+      }).then(({ data, error }) => {
+        if (!error && data) setHasGlobalManual(true);
+        else setHasGlobalManual(false);
+      });
+    }
+  }, [moto?.brand, moto?.model]);
+
+  const handleUploadManual = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+      const file = result.assets[0];
+
+      setIsUploadingManual(true);
+      setErrorMsg('');
+
+      // Upload to Storage
+      const timestamp = new Date().getTime();
+      const storageKey = `manuals/${moto?.id}_${timestamp}.pdf`;
+      
+      const formData = new FormData();
+      formData.append('file', {
+        uri: file.uri,
+        name: file.name,
+        type: 'application/pdf'
+      } as any);
+
+      const uploadResponse = await fetch(`${supabaseUrl}/storage/v1/object/manuals/${storageKey}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Error subiendo el archivo al servidor.');
+      }
+
+      // Call Edge Function to process it
+      const { data, error } = await insforge.functions.invoke('process-manual', {
+        body: {
+          storage_key: storageKey,
+          motorcycle_id: moto?.id,
+          filename: file.name
+        }
+      });
+
+      if (error || (data && data.error)) {
+        throw new Error(error?.message || data?.error || 'Error procesando el manual con IA.');
+      }
+
+      setHasGlobalManual(true);
+      Alert.alert('¡Éxito!', 'Manual procesado e integrado exitosamente. Todos los usuarios de esta moto se beneficiarán.');
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.message || 'Ocurrió un error inesperado al subir el manual.');
+      Alert.alert('Error', err.message || 'Ocurrió un error inesperado al subir el manual.');
+    } finally {
+      setIsUploadingManual(false);
+    }
   };
 
   const handleSave = async () => {
@@ -56,7 +166,7 @@ export default function EditMotoScreen() {
     setIsLoading(true);
     setErrorMsg('');
     
-    const motoData: Partial<Motorcycle> = {
+    const motoData = {
       brand: formData.brand,
       model: formData.model,
       year: parseInt(formData.year) || 2024,
@@ -68,6 +178,8 @@ export default function EditMotoScreen() {
       soat_policy_number: formData.soat_policy_number || undefined,
       tecno_expiry: formData.tecno_expiry || undefined,
       tecno_certificate: formData.tecno_certificate || undefined,
+      localImageUri: localImageUri,
+      currentImageUrl: moto?.image_url,
     };
 
     const { error } = await updateMotorcycle(id as string, motoData);
@@ -245,6 +357,13 @@ export default function EditMotoScreen() {
 
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}>
         
+        <ImagePickerSelector
+          imageUri={displayImageUri}
+          onImageSelected={handleImageSelected}
+          onImageRemoved={handleImageRemoved}
+          size={120}
+        />
+
         {/* IA Scanner Banner */}
         <View style={styles.iaBanner}>
           <TouchableOpacity 
@@ -262,6 +381,43 @@ export default function EditMotoScreen() {
             </Text>
           </TouchableOpacity>
           <Text style={styles.iaHelpText}>Sube una foto de la tarjeta de propiedad y la IA llenará los campos automáticamente.</Text>
+        </View>
+
+        {/* Manual Inteligente Section */}
+        <View style={[styles.section, { backgroundColor: 'rgba(59, 130, 246, 0.05)', borderColor: 'rgba(59, 130, 246, 0.2)', borderWidth: 1, borderRadius: 12, padding: 16, marginTop: 16 }]}>
+          <View style={[styles.sectionHeader, { marginBottom: 8 }]}>
+            <MaterialIcons name="menu-book" size={20} color="#3b82f6" style={{ marginRight: 8 }} />
+            <Text style={[styles.sectionTitle, { color: '#3b82f6', marginBottom: 0 }]}>Manual Inteligente RAG</Text>
+          </View>
+          
+          {hasGlobalManual === null ? (
+            <ActivityIndicator size="small" color="#3b82f6" />
+          ) : hasGlobalManual ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: 12, borderRadius: 8 }}>
+              <MaterialIcons name="check-circle" size={20} color="#10b981" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#10b981', flex: 1, fontSize: 13 }}>Manual activo. Tienes tips y alertas precisas para esta moto.</Text>
+            </View>
+          ) : (
+            <View>
+              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 12, lineHeight: 20 }}>
+                Esta moto aún no tiene un manual oficial registrado. Sé el primero en subir el PDF y la IA lo procesará para toda la comunidad.
+              </Text>
+              <TouchableOpacity 
+                style={[styles.iaButton, { backgroundColor: '#3b82f6' }]}
+                onPress={handleUploadManual}
+                disabled={isUploadingManual}
+              >
+                {isUploadingManual ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <MaterialIcons name="upload-file" size={20} color="#fff" />
+                )}
+                <Text style={[styles.iaButtonText, { color: '#fff' }]}>
+                  {isUploadingManual ? "Procesando manual con IA..." : "Subir PDF del Manual"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {errorMsg ? (
@@ -366,13 +522,26 @@ export default function EditMotoScreen() {
           <View style={styles.grid}>
             <View style={styles.col1}>
               <Text style={styles.label}>Vencimiento (YYYY-MM-DD)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="2027-10-12"
-                placeholderTextColor="rgba(255, 255, 255, 0.2)"
-                value={formData.soat_expiry}
-                onChangeText={(t) => handleChange('soat_expiry', t)}
-              />
+              <TouchableOpacity onPress={() => setShowSoatPicker(true)} activeOpacity={0.8}>
+                <View pointerEvents="none">
+                  <TextInput
+                    style={styles.input}
+                    placeholder="2027-10-12"
+                    placeholderTextColor="rgba(255, 255, 255, 0.2)"
+                    value={formData.soat_expiry}
+                    editable={false}
+                  />
+                  <MaterialIcons name="calendar-today" size={20} color="rgba(255,255,255,0.3)" style={{ position: 'absolute', right: 16, top: 14 }} />
+                </View>
+              </TouchableOpacity>
+              {showSoatPicker && (
+                <DateTimePicker
+                  value={formData.soat_expiry ? new Date(formData.soat_expiry + 'T12:00:00Z') : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={handleSoatDateChange}
+                />
+              )}
             </View>
             <View style={styles.col1}>
               <Text style={styles.label}>Nº Póliza</Text>
@@ -394,13 +563,26 @@ export default function EditMotoScreen() {
           <View style={styles.grid}>
             <View style={styles.col1}>
               <Text style={styles.label}>Vencimiento (YYYY-MM-DD)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="2027-06-05"
-                placeholderTextColor="rgba(255, 255, 255, 0.2)"
-                value={formData.tecno_expiry}
-                onChangeText={(t) => handleChange('tecno_expiry', t)}
-              />
+              <TouchableOpacity onPress={() => setShowTecnoPicker(true)} activeOpacity={0.8}>
+                <View pointerEvents="none">
+                  <TextInput
+                    style={styles.input}
+                    placeholder="2027-06-05"
+                    placeholderTextColor="rgba(255, 255, 255, 0.2)"
+                    value={formData.tecno_expiry}
+                    editable={false}
+                  />
+                  <MaterialIcons name="calendar-today" size={20} color="rgba(255,255,255,0.3)" style={{ position: 'absolute', right: 16, top: 14 }} />
+                </View>
+              </TouchableOpacity>
+              {showTecnoPicker && (
+                <DateTimePicker
+                  value={formData.tecno_expiry ? new Date(formData.tecno_expiry + 'T12:00:00Z') : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={handleTecnoDateChange}
+                />
+              )}
             </View>
             <View style={styles.col1}>
               <Text style={styles.label}>Nº Certificado</Text>

@@ -7,10 +7,12 @@
     "icon": "./assets/images/icon.png",
     "scheme": "ruta360mobile",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0A0F1A",
     "ios": {
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "backgroundColor": "#0A0F1A",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

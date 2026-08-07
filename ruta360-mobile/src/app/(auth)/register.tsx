@@ -16,6 +16,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -96,7 +97,7 @@ export default function RegisterScreen() {
       style={{ flex: 1, backgroundColor: Colores.fondoPrincipal }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.container}>
           
           {/* Logo Area */}
@@ -186,10 +187,17 @@ export default function RegisterScreen() {
                   style={styles.input}
                   placeholder="••••••••"
                   placeholderTextColor="rgba(255, 255, 255, 0.2)"
-                  secureTextEntry={true}
+                  secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                 />
+                <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                  <MaterialIcons 
+                    name={showConfirmPassword ? "visibility-off" : "visibility"} 
+                    size={20} 
+                    color={showConfirmPassword ? Colores.primario : "rgba(255, 255, 255, 0.4)"} 
+                  />
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -252,7 +260,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   container: {
-    flex: 1,
     paddingHorizontal: 24,
     paddingTop: 48,
     paddingBottom: 40,

@@ -8,6 +8,7 @@ import { useMantenimientoStore } from '@/store/mantenimientoStore';
 import { useVehiculoStore } from '@/store/vehiculoStore';
 import TarjetaMantenimiento from '@/components/mantenimiento/TarjetaMantenimiento';
 import { Picker } from '@react-native-picker/picker';
+import { getManualInsights } from '@/services/insforge/rag';
 
 type Tab = 'historial' | 'proximos';
 
@@ -20,6 +21,8 @@ export default function MaintenanceListScreen() {
 
   const [activeTab, setActiveTab] = useState<Tab>('historial');
   const [newKm, setNewKm] = useState('');
+  const [loadingInsights, setLoadingInsights] = useState(false);
+  const [manualInsights, setManualInsights] = useState<any>(null);
 
   useEffect(() => {
     if (activeMotorcycleId) {
@@ -28,6 +31,17 @@ export default function MaintenanceListScreen() {
   }, [activeMotorcycleId]);
 
   const activeMoto = motorcycles.find(m => m.id === activeMotorcycleId);
+
+  useEffect(() => {
+    if (activeMoto) {
+      setLoadingInsights(true);
+      getManualInsights(activeMoto.id, activeMoto.brand, activeMoto.model, activeMoto.current_km)
+        .then(data => {
+          setLoadingInsights(false);
+          setManualInsights(data || null);
+        });
+    }
+  }, [activeMoto?.id, activeMoto?.current_km]);
 
   // Calculate monthly summary
   const monthlySummary = useMemo(() => {
@@ -84,7 +98,7 @@ export default function MaintenanceListScreen() {
                     onValueChange={(val) => {
                       if (val) setActiveMotorcycle(val);
                     }}
-                    style={[styles.picker, Platform.OS === 'web' && { backgroundColor: 'transparent', outline: 'none' }]}
+                    style={[styles.picker, Platform.OS === 'web' && { backgroundColor: 'transparent', outline: 'none', border: 'none', borderWidth: 0 } as any]}
                     dropdownIconColor={Colores.primario}
                     mode="dropdown"
                   >
@@ -99,23 +113,52 @@ export default function MaintenanceListScreen() {
           </View>
           <Text style={styles.recordCountText}>{records.length} registros</Text>
 
-          {/* Smart Reminder Placeholder */}
-          <View style={styles.smartReminderContainer}>
-            <View style={styles.smartReminderHeader}>
-              <MaterialIcons name="warning" size={16} color={Colores.acento} />
-              <Text style={styles.smartReminderTitle}>RECORDATORIOS INTELIGENTES</Text>
-            </View>
-            <View style={styles.smartReminderCard}>
-              <View style={styles.smartReminderCardTop}>
-                <Text style={styles.smartReminderItemName}>Filtro de aire</Text>
-                <Text style={styles.smartReminderItemMoto}>{activeMoto?.model || 'Moto'}</Text>
+          {/* Smart Reminder */}
+          {loadingInsights ? (
+            <ActivityIndicator size="small" color={Colores.acento} style={{ marginVertical: 16 }} />
+          ) : (
+            <View style={styles.smartReminderContainer}>
+              <View style={styles.smartReminderHeader}>
+                <MaterialIcons name="warning" size={16} color={Colores.acento} />
+                <Text style={styles.smartReminderTitle}>RECORDATORIOS INTELIGENTES</Text>
               </View>
-              <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: '85%' }]} />
-              </View>
-              <Text style={styles.smartReminderDistance}>FALTAN 1000 KM</Text>
+              
+              {manualInsights?.alert && manualInsights.alert.toLowerCase() !== 'sin alertas' ? (
+                <View style={styles.smartReminderCard}>
+                  <View style={styles.smartReminderCardTop}>
+                    <Text style={styles.smartReminderItemName}>{manualInsights.alert}</Text>
+                    <Text style={styles.smartReminderItemMoto}>{activeMoto?.model || 'Moto'}</Text>
+                  </View>
+                  <View style={styles.progressBarBg}>
+                    <View style={[styles.progressBarFill, { width: '95%' }]} />
+                  </View>
+                  <Text style={styles.smartReminderDistance}>URGENTE SEGÚN MANUAL</Text>
+                  {manualInsights.reference && (
+                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 8, fontStyle: 'italic' }}>
+                      Ref: {manualInsights.reference.substring(0, 80)}...
+                    </Text>
+                  )}
+                </View>
+              ) : manualInsights?.nextService ? (
+                <View style={[styles.smartReminderCard, { borderColor: 'rgba(16, 185, 129, 0.3)' }]}>
+                  <View style={styles.smartReminderCardTop}>
+                    <Text style={styles.smartReminderItemName}>{manualInsights.nextService}</Text>
+                    <Text style={styles.smartReminderItemMoto}>{activeMoto?.model || 'Moto'}</Text>
+                  </View>
+                  <View style={styles.progressBarBg}>
+                    <View style={[styles.progressBarFill, { width: '50%', backgroundColor: '#10b981' }]} />
+                  </View>
+                  <Text style={[styles.smartReminderDistance, { color: '#10b981' }]}>PRÓXIMO SERVICIO</Text>
+                </View>
+              ) : (
+                <View style={[styles.smartReminderCard, { opacity: 0.7 }]}>
+                  <Text style={{ color: Colores.blanco }}>
+                    Si subes el manual de tu moto, la IA te dará recordatorios exactos basados en tu kilometraje actual.
+                  </Text>
+                </View>
+              )}
             </View>
-          </View>
+          )}
 
           {/* Tabs */}
           <View style={styles.tabsContainer}>
@@ -318,6 +361,7 @@ const styles = StyleSheet.create({
     height: 55,
     width: '100%',
     fontWeight: 'bold',
+    borderWidth: 0,
   },
   recordCountText: {
     fontSize: 12,

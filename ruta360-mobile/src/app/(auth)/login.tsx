@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Platform, ActivityIndicator, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colores } from '@/constants/colores';
@@ -97,7 +97,12 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={{ flex: 1, backgroundColor: Colores.fondoPrincipal }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <View style={styles.container}>
       <View style={styles.main}>
         {/* Logo Section */}
         <View style={styles.logoContainer}>
@@ -210,12 +215,16 @@ export default function LoginScreen() {
         </View>
       </View>
     </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1,
+  },
   container: {
-    flex: 1,
     backgroundColor: Colores.fondoPrincipal,
     justifyContent: 'center',
     alignItems: 'center',

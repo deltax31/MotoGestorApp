@@ -10,6 +10,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { insforge } from '@/services/insforge/client';
 import { Platform } from 'react-native';
 
+import { ImagePickerSelector } from '@/components/vehiculo/ImagePickerSelector';
+
 export default function RegisterMotoScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -19,6 +21,7 @@ export default function RegisterMotoScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [localImageUri, setLocalImageUri] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     brand: '',
     model: '',
@@ -79,6 +82,7 @@ export default function RegisterMotoScreen() {
       soat_policy_number: formData.soat_policy_number || undefined,
       tecno_expiry: formData.tecno_expiry || undefined,
       tecno_certificate: formData.tecno_certificate || undefined,
+      localImageUri: localImageUri,
     };
 
     const { error } = await addMotorcycle(motoData);
@@ -207,6 +211,13 @@ export default function RegisterMotoScreen() {
 
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}>
         
+        <ImagePickerSelector
+          imageUri={localImageUri}
+          onImageSelected={(uri) => setLocalImageUri(uri)}
+          onImageRemoved={() => setLocalImageUri(null)}
+          size={120}
+        />
+
         {/* IA Scanner Banner */}
         <View style={styles.iaBanner}>
           <TouchableOpacity 

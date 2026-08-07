@@ -1,9 +1,30 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colores } from '@/constants/colores';
+import { useVehiculoStore } from '@/store/vehiculoStore';
+import { getManualInsights } from '@/services/insforge/rag';
 
 export function TarjetaConsejo() {
+  const { motorcycles, activeMotorcycleId } = useVehiculoStore();
+  const moto = motorcycles.find(m => m.id === activeMotorcycleId) || motorcycles[0];
+  
+  const [loading, setLoading] = useState(true);
+  const [tipData, setTipData] = useState<{ tip_dashboard?: string } | null>(null);
+
+  useEffect(() => {
+    if (moto) {
+      setLoading(true);
+      getManualInsights(moto.id, moto.brand, moto.model, moto.current_km)
+        .then(data => {
+          setLoading(false);
+          setTipData(data || null);
+        });
+    } else {
+      setLoading(false);
+    }
+  }, [moto?.id, moto?.current_km]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -16,14 +37,23 @@ export function TarjetaConsejo() {
         </View>
         <View style={styles.content}>
           <View style={styles.titleRow}>
-            <Text style={styles.title}>Tip Técnico: Presión de Llantas</Text>
+            <Text style={styles.title}>
+               {moto ? `Para tu ${moto.brand} ${moto.model}` : 'Tip Técnico General'}
+            </Text>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>MANUAL TÉCNICO</Text>
+              <Text style={styles.badgeText}>MANUAL</Text>
             </View>
           </View>
-          <Text style={styles.description}>
-            Para tu MT-09, la presión recomendada es de 36 psi adelante y 42 psi atrás para un rendimiento óptimo en ciudad.
-          </Text>
+          
+          {loading ? (
+             <ActivityIndicator size="small" color={Colores.primario} style={{ alignSelf: 'flex-start', marginTop: 8 }} />
+          ) : (
+            <Text style={styles.description}>
+              {tipData?.tip_dashboard 
+                ? tipData.tip_dashboard 
+                : "Asegúrate de revisar periódicamente tu motocicleta para un óptimo rendimiento en la ciudad."}
+            </Text>
+          )}
         </View>
       </View>
     </View>
